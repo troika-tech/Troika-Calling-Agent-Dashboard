@@ -113,17 +113,17 @@ const DeliveryReports = () => {
   const SortIcon = ({ column }) => {
     if (sortColumn !== column) {
       return (
-        <span className="inline-flex flex-col ml-1">
-          <FaChevronUp className="text-white/60 text-xs" />
-          <FaChevronDown className="text-white/60 text-xs -mt-1" />
+        <span className="inline-flex flex-col">
+          <FaChevronUp className="text-zinc-400 text-[10px]" />
+          <FaChevronDown className="text-zinc-400 text-[10px] -mt-1" />
         </span>
       );
     }
 
     return sortDirection === 'asc' ? (
-      <FaChevronUp className="ml-1 text-yellow-300" />
+      <FaChevronUp className="text-emerald-600 text-[10px]" />
     ) : (
-      <FaChevronDown className="ml-1 text-yellow-300" />
+      <FaChevronDown className="text-emerald-600 text-[10px]" />
     );
   };
 
@@ -139,39 +139,43 @@ const DeliveryReports = () => {
   const endEntryValue = Math.min(endIndex, filteredCampaigns.length);
 
   return (
-    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
-      <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">Delivery Report List</h1>
-          <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mt-1">
-            View and download detailed reports for your campaigns
-          </p>
+    <div className="space-y-6">
+      <div>
+        <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs text-emerald-700 mb-3">
+          <FaDownload className="h-3 w-3" />
+          <span>Export reports</span>
         </div>
+        <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-zinc-900">
+          Delivery Reports
+        </h1>
+        <p className="text-sm text-zinc-500 mt-1">
+          View and download detailed reports for your campaigns
+        </p>
       </div>
 
-      <div className="bg-gradient-to-br from-white to-blue-50 dark:from-gray-800 dark:to-gray-900 rounded-xl shadow-md border-2 border-blue-200 dark:border-blue-800 p-3 sm:p-4">
+      <div className="glass-panel p-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
           <div className="flex items-center space-x-2 w-full sm:w-auto">
-            <label className="text-xs sm:text-sm font-semibold text-blue-700 dark:text-blue-300 whitespace-nowrap">Show</label>
+            <label className="text-xs font-medium text-zinc-600 whitespace-nowrap">Show</label>
             <select
               value={entriesPerPage}
               onChange={(e) => {
                 setEntriesPerPage(Number(e.target.value));
                 setCurrentPage(1);
               }}
-              className="px-2 sm:px-3 py-1 text-xs sm:text-sm border-2 border-blue-300 dark:border-blue-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+              className="px-3 py-1.5 text-xs border border-zinc-200 rounded-lg bg-white text-zinc-900 focus:ring-2 focus:ring-emerald-500/60 focus:border-emerald-400"
             >
               <option value={10}>10</option>
               <option value={25}>25</option>
               <option value={50}>50</option>
               <option value={100}>100</option>
             </select>
-            <span className="text-xs sm:text-sm font-semibold text-blue-700 dark:text-blue-300 whitespace-nowrap">entries</span>
+            <span className="text-xs font-medium text-zinc-600 whitespace-nowrap">entries</span>
           </div>
           <div className="flex items-center space-x-2 w-full sm:w-auto">
-            <label className="text-xs sm:text-sm font-semibold text-blue-700 dark:text-blue-300 whitespace-nowrap">Search:</label>
+            <label className="text-xs font-medium text-zinc-600 whitespace-nowrap">Search:</label>
             <div className="relative flex-1 sm:flex-initial">
-              <FaSearch className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 text-blue-500 text-xs sm:text-sm" />
+              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 text-xs" />
               <input
                 type="text"
                 placeholder="Search..."
@@ -180,7 +184,7 @@ const DeliveryReports = () => {
                   setSearch(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full sm:w-auto pl-8 sm:pl-10 pr-3 sm:pr-4 py-1.5 sm:py-2 text-xs sm:text-sm border-2 border-blue-300 dark:border-blue-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                className="w-full sm:w-auto pl-9 pr-3 py-1.5 text-xs border border-zinc-200 rounded-lg bg-white text-zinc-900 focus:ring-2 focus:ring-emerald-500/60 focus:border-emerald-400"
               />
             </div>
           </div>
@@ -188,112 +192,109 @@ const DeliveryReports = () => {
       </div>
 
       {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-          <p className="text-red-800 dark:text-red-200">{error}</p>
+        <div className="glass-card border-l-4 border-red-500/70 bg-red-50/80 p-4">
+          <p className="text-red-800 text-sm">{error}</p>
         </div>
       )}
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border-2 border-indigo-200 dark:border-indigo-800 overflow-hidden">
-        <div className="overflow-x-auto mobile-scrollbar">
-          <table className="w-full text-xs sm:text-sm min-w-[800px]">
-            <thead className="text-white uppercase text-xs tracking-wider shadow-lg" style={{ background: 'linear-gradient(to right, #1e4fd9, #2c60eb)' }}>
-              <tr>
-                <th className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left font-bold w-10 sm:w-auto sticky left-0 z-10 border-r-2 rounded-tl-xl" style={{ borderColor: 'rgba(255, 255, 255, 0.2)' }}>#</th>
+      <div className="glass-panel overflow-hidden">
+        <div className="overflow-x-auto scrollbar-thin">
+          <table className="w-full min-w-[800px]">
+            <thead>
+              <tr className="bg-gradient-to-r from-emerald-50/80 to-teal-50/80 border-b border-zinc-200">
+                <th className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 uppercase tracking-[0.16em] whitespace-nowrap">#</th>
                 <th
-                  className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left font-bold cursor-pointer"
+                  className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 uppercase tracking-[0.16em] whitespace-nowrap cursor-pointer"
                   onClick={() => handleSort('uniqueId')}
                 >
-                  <span className="flex items-center">
-                    <span className="hidden sm:inline">Unique ID</span>
-                    <span className="sm:hidden">ID</span>
+                  <span className="flex items-center gap-1">
+                    UNIQUE ID
                     <SortIcon column="uniqueId" />
                   </span>
                 </th>
                 <th
-                  className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left font-bold cursor-pointer"
+                  className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 uppercase tracking-[0.16em] whitespace-nowrap cursor-pointer"
                   onClick={() => handleSort('campaignName')}
                 >
-                  <span className="flex items-center">
-                    <span className="hidden md:inline">Campaign Name</span>
-                    <span className="md:hidden">Campaign</span>
+                  <span className="flex items-center gap-1">
+                    CAMPAIGN NAME
                     <SortIcon column="campaignName" />
                   </span>
                 </th>
                 <th
-                  className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left font-bold cursor-pointer"
+                  className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 uppercase tracking-[0.16em] whitespace-nowrap cursor-pointer"
                   onClick={() => handleSort('totalNos')}
                 >
-                  <span className="flex items-center">
-                    <span className="hidden sm:inline">Total No's</span>
-                    <span className="sm:hidden">Total</span>
+                  <span className="flex items-center gap-1">
+                    TOTAL NO'S
                     <SortIcon column="totalNos" />
                   </span>
                 </th>
                 <th
-                  className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left font-bold cursor-pointer"
+                  className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 uppercase tracking-[0.16em] whitespace-nowrap cursor-pointer"
                   onClick={() => handleSort('usedCredit')}
                 >
-                  <span className="flex items-center">
-                    <span className="hidden sm:inline">Used Credit</span>
-                    <span className="sm:hidden">Credit</span>
+                  <span className="flex items-center gap-1">
+                    USED CREDIT
                     <SortIcon column="usedCredit" />
                   </span>
                 </th>
                 <th
-                  className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left font-bold cursor-pointer"
+                  className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 uppercase tracking-[0.16em] whitespace-nowrap cursor-pointer"
                   onClick={() => handleSort('status')}
                 >
-                  <span className="flex items-center">
-                    Status
+                  <span className="flex items-center gap-1">
+                    STATUS
                     <SortIcon column="status" />
                   </span>
                 </th>
-                <th className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left font-bold rounded-tr-xl">Action</th>
+                <th className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 uppercase tracking-[0.16em] whitespace-nowrap">ACTION</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700 text-gray-900 dark:text-gray-100">
+            <tbody>
               {loading && campaigns.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="px-4 sm:px-6 py-8 sm:py-10 text-center text-gray-500 dark:text-gray-400 text-xs sm:text-sm">
+                  <td colSpan="7" className="px-4 py-8 text-center text-zinc-500 text-sm">
                     Loading delivery reports...
                   </td>
                 </tr>
               ) : paginatedCampaigns.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="px-4 sm:px-6 py-8 sm:py-10 text-center text-gray-500 dark:text-gray-400 text-xs sm:text-sm">
+                  <td colSpan="7" className="px-4 py-8 text-center text-zinc-500 text-sm">
                     No data available in table
                   </td>
                 </tr>
               ) : (
                 paginatedCampaigns.map((campaign, index) => (
-                  <tr key={campaign._id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
-                    <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-xs sm:text-sm font-medium sticky left-0 bg-white dark:bg-gray-800 group-hover:bg-gray-50 dark:group-hover:bg-gray-700 z-10 border-r border-gray-200 dark:border-gray-700">{startIndex + index + 1}</td>
-                    <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 font-mono text-xs break-all min-w-[120px] sm:min-w-[150px]">{campaign._id}</td>
-                    <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 font-semibold text-xs sm:text-sm min-w-[100px] sm:min-w-[150px]">{campaign.name}</td>
-                    <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-xs sm:text-sm font-medium whitespace-nowrap">{campaign.totalCalls ?? 0}</td>
-                    <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 font-semibold text-xs sm:text-sm whitespace-nowrap">{getCreditsUsed(campaign)}</td>
-                    <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4">
+                  <tr key={campaign._id} className="border-b border-zinc-100 last:border-0 hover:bg-zinc-50/50 transition-colors">
+                    <td className="px-4 py-3 text-xs font-medium text-zinc-900">{startIndex + index + 1}</td>
+                    <td className="px-4 py-3 text-xs font-mono text-zinc-700">{campaign._id}</td>
+                    <td className="px-4 py-3 text-xs text-zinc-700">{campaign.name}</td>
+                    <td className="px-4 py-3 text-xs text-zinc-700">{campaign.totalCalls ?? 0}</td>
+                    <td className="px-4 py-3 text-xs font-semibold text-emerald-600">{getCreditsUsed(campaign)}</td>
+                    <td className="px-4 py-3">
                       <span
-                        className={`px-2 sm:px-3 py-0.5 sm:py-1 text-xs font-semibold rounded-full capitalize whitespace-nowrap ${
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap ${
                           campaign.status === 'active' || campaign.status === 'running'
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                             : campaign.status === 'completed'
-                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
                             : campaign.status === 'paused'
-                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                            : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                            ? 'bg-yellow-50 text-yellow-700 border border-yellow-200'
+                            : 'bg-zinc-100 text-zinc-700 border border-zinc-200'
                         }`}
                       >
+                        <span className="h-1.5 w-1.5 rounded-full bg-current flex-shrink-0" />
                         {campaign.status || 'unknown'}
                       </span>
                     </td>
-                    <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <button
                         onClick={() => viewReport(campaign)}
-                        className="px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-colors text-xs sm:text-sm whitespace-nowrap"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full text-[11px] font-medium transition-colors"
                       >
-                        <span className="hidden sm:inline">View Report</span>
-                        <span className="sm:hidden">View</span>
+                        <FaDownload size={12} />
+                        <span>View Report</span>
                       </button>
                     </td>
                   </tr>
@@ -303,39 +304,39 @@ const DeliveryReports = () => {
           </table>
         </div>
 
-        <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-gray-800 dark:to-gray-900 border-t-2 border-indigo-300 dark:border-indigo-700 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
-          <div className="text-xs sm:text-sm font-semibold text-indigo-700 dark:text-indigo-300 text-center sm:text-left">
-            Showing <span className="text-blue-600 dark:text-blue-400">{startEntry}</span> to <span className="text-blue-600 dark:text-blue-400">{endEntryValue}</span> of <span className="text-purple-600 dark:text-purple-400">{filteredCampaigns.length}</span> entries
+        <div className="px-4 py-3 border-t border-zinc-200 bg-zinc-50/60 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
+          <div className="text-xs sm:text-sm font-medium text-zinc-600 text-center sm:text-left">
+            Showing <span className="text-emerald-600">{startEntry}</span> to <span className="text-emerald-600">{endEntryValue}</span> of <span className="text-zinc-900">{filteredCampaigns.length}</span> entries
           </div>
           <div className="flex items-center space-x-1 sm:space-x-2 flex-wrap justify-center">
             <button
               onClick={() => setCurrentPage(1)}
               disabled={currentPage === 1}
-              className="px-2 sm:px-3 py-1 text-xs sm:text-sm border-2 border-indigo-400 dark:border-indigo-600 rounded-lg bg-white dark:bg-gray-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold"
+              className="px-2 sm:px-3 py-1 text-xs sm:text-sm border border-zinc-300 rounded-lg bg-white text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
             >
               ««
             </button>
             <button
               onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
               disabled={currentPage === 1}
-              className="px-2 sm:px-3 py-1 text-xs sm:text-sm border-2 border-indigo-400 dark:border-indigo-600 rounded-lg bg-white dark:bg-gray-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold"
+              className="px-2 sm:px-3 py-1 text-xs sm:text-sm border border-zinc-300 rounded-lg bg-white text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
             >
               «
             </button>
-            <span className="px-2 sm:px-4 py-1 text-xs sm:text-sm font-bold text-indigo-700 dark:text-indigo-300 whitespace-nowrap bg-white dark:bg-gray-700 rounded-lg border-2 border-indigo-300 dark:border-indigo-600">
-              Page <span className="text-blue-600 dark:text-blue-400">{currentPage}</span> of <span className="text-purple-600 dark:text-purple-400">{totalPages}</span>
+            <span className="px-2 sm:px-4 py-1 text-xs sm:text-sm font-medium text-zinc-700 whitespace-nowrap bg-white rounded-lg border border-zinc-300">
+              Page <span className="text-emerald-600">{currentPage}</span> of <span className="text-zinc-900">{totalPages}</span>
             </span>
             <button
               onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
               disabled={currentPage >= totalPages}
-              className="px-2 sm:px-3 py-1 text-xs sm:text-sm border-2 border-indigo-400 dark:border-indigo-600 rounded-lg bg-white dark:bg-gray-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold"
+              className="px-2 sm:px-3 py-1 text-xs sm:text-sm border border-zinc-300 rounded-lg bg-white text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
             >
               »
             </button>
             <button
               onClick={() => setCurrentPage(totalPages)}
               disabled={currentPage >= totalPages}
-              className="px-2 sm:px-3 py-1 text-xs sm:text-sm border-2 border-indigo-400 dark:border-indigo-600 rounded-lg bg-white dark:bg-gray-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold"
+              className="px-2 sm:px-3 py-1 text-xs sm:text-sm border border-zinc-300 rounded-lg bg-white text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
             >
               »»
             </button>

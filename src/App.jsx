@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
-import { FaBars } from 'react-icons/fa';
+import { FaBars, FaPhone } from 'react-icons/fa';
 
 import Sidebar from './components/Sidebar';
 
@@ -30,48 +30,18 @@ const ProtectedRoute = ({ children }) => {
 
 
 function App() {
-
-  const [darkMode, setDarkMode] = useState(() => {
-
-    const saved = localStorage.getItem('darkMode');
-
-    return saved ? JSON.parse(saved) : true; // Default to dark mode
-
-  });
-
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-
-
-  useEffect(() => {
-
-    if (darkMode) {
-
-      document.documentElement.classList.add('dark');
-
-    } else {
-
-      document.documentElement.classList.remove('dark');
-
-    }
-
-    localStorage.setItem('darkMode', JSON.stringify(darkMode));
-
-  }, [darkMode]);
-
-
-
-  const toggleDarkMode = () => {
-
-    setDarkMode(!darkMode);
-
-  };
 
 
 
   return (
 
-    <Router>
+    <Router
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
 
       <Routes>
         {/* Public Routes */}
@@ -82,24 +52,41 @@ function App() {
           path="/*"
           element={
             <ProtectedRoute>
-      <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
-        {/* Mobile Header - Only visible on mobile */}
-        <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-50 flex items-center justify-between px-4">
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-          >
-            <FaBars size={20} />
-          </button>
-          <UserMenu darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-        </header>
+      <div className="h-screen bg-gradient-to-b from-zinc-50 via-slate-50 to-slate-100 text-zinc-900 flex flex-col overflow-hidden">
+        <div className="flex flex-1 min-h-0 overflow-hidden">
+          {/* Mobile Header - Only visible on mobile */}
+          <header className="lg:hidden fixed top-0 left-0 right-0 h-16 border-b border-zinc-200 bg-white/80 backdrop-blur-xl flex items-center justify-between px-4 shadow-sm shadow-black/5 z-[60]">
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-200 bg-white shadow-sm"
+            >
+              <FaBars size={20} className="text-zinc-700" />
+            </button>
+            <UserMenu />
+          </header>
 
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+          <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-                <main className="flex-1 overflow-y-auto relative lg:pt-0 pt-16">
-                  <div className="absolute top-10 right-12 z-20 hidden lg:block">
-                    <UserMenu darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-                  </div>
+          {/* Main */}
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+            {/* Top bar */}
+            <header className="hidden lg:flex h-16 border-b border-zinc-200 bg-white/80 backdrop-blur-xl items-center justify-between px-4 md:px-6 shadow-sm shadow-black/5 relative z-40 flex-shrink-0">
+              <div className="hidden md:flex items-center gap-3 text-xs text-zinc-500 uppercase tracking-[0.16em]">
+                <span>Realtime Operations</span>
+              </div>
+              <div className="flex items-center gap-3 relative z-50">
+                <div className="hidden sm:flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs text-emerald-700">
+                  <span className="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Live
+                </div>
+                <div className="hidden lg:block">
+                  <UserMenu />
+                </div>
+              </div>
+            </header>
+
+            {/* Content */}
+            <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-3 md:px-6 pt-20 pb-4 md:pt-8 md:pb-6 lg:pt-6">
           <Routes>
 
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -118,9 +105,9 @@ function App() {
             <Route path="/settings" element={<Settings />} />
 
           </Routes>
-
-        </main>
-
+            </main>
+          </div>
+        </div>
       </div>
 
             </ProtectedRoute>

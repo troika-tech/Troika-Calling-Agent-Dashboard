@@ -28,7 +28,14 @@ const CampaignReportDetail = () => {
   const [campaign, setCampaign] = useState(null);
   const [callLogs, setCallLogs] = useState([]);
   const [stats, setStats] = useState(null);
-  
+  const [creditsConsumed, setCreditsConsumed] = useState(0);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCalls, setTotalCalls] = useState(0);
+  const [loadingCalls, setLoadingCalls] = useState(false);
+
   // Filters for Analytics tab
   const [phoneFilter, setPhoneFilter] = useState([]); // Changed to array for multiple selection
   const [statusFilter, setStatusFilter] = useState('');
@@ -45,6 +52,13 @@ const CampaignReportDetail = () => {
   useEffect(() => {
     fetchCampaignDetails();
   }, [campaignId]);
+
+  // Fetch call logs when analytics tab is opened or pagination changes
+  useEffect(() => {
+    if (activeTab === 'analytics') {
+      fetchCallLogs();
+    }
+  }, [activeTab, currentPage, entriesPerPage]);
 
   // Fetch all unique phone numbers from call logs
   useEffect(() => {
@@ -72,69 +86,94 @@ const CampaignReportDetail = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch campaign details
-      const campaignResponse = await campaignAPI.get(campaignId);
-      setCampaign(campaignResponse.data);
+      // Fetch campaign report with all statistics calculated on backend
+      const reportResponse = await campaignAPI.getReport(campaignId);
+      const report = reportResponse.data || reportResponse;
 
-      // Fetch debug info for detailed stats and call logs
-      const debugResponse = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/campaigns/${campaignId}/debug`
-      );
+      console.log('📊 Campaign report:', report);
+      console.log('📊 Raw API Response:', JSON.stringify(reportResponse, null, 2));
+      console.log('📊 Campaign data:', report.campaign);
+      console.log('📊 phoneId object:', report.campaign?.phoneId);
+      console.log('📊 phoneId.number:', report.campaign?.phoneId?.number);
+      console.log('📊 userId object:', report.campaign?.userId);
+      console.log('📊 userId.name:', report.campaign?.userId?.name);
+      console.log('📊 userId.email:', report.campaign?.userId?.email);
 
-      if (debugResponse.ok) {
-        const debugData = await debugResponse.json();
-        setStats(debugData.debugInfo?.stats || {});
-        
-        // Fetch all call logs for this campaign
-        try {
-          // Get user from localStorage
-          const user = JSON.parse(localStorage.getItem('user') || '{}');
-          const userId = user._id || user.id;
-
-          const params = { limit: 1000 };
-          if (userId) {
-            params.userId = userId;
-          }
-
-          const callsResponse = await callAPI.getAllCalls(params);
-          const allCalls = callsResponse.data?.calls || [];
-          const campaignCalls = allCalls.filter(
-            call => {
-              const callCampaignId = call.customParameters?.campaignId;
-              return callCampaignId?.toString() === campaignId || callCampaignId === campaignId;
-            }
-          );
-          setCallLogs(campaignCalls);
-        } catch (callErr) {
-          console.warn('Error fetching call logs:', callErr);
-          // Use recent call logs from debug data as fallback
-          const allCallLogs = debugData.debugInfo?.recentCallLogs || [];
-          setCallLogs(allCallLogs);
-        }
-      } else {
-        // Fallback: try to get calls by campaign ID from customParameters
-        // Get user from localStorage
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        const userId = user._id || user.id;
-
-        const params = { limit: 1000 };
-        if (userId) {
-          params.userId = userId;
-        }
-
-        const callsResponse = await callAPI.getAllCalls(params);
-        const allCalls = callsResponse.data?.calls || [];
-        const campaignCalls = allCalls.filter(
-          call => call.customParameters?.campaignId === campaignId ||
-                  call.customParameters?.campaignId?.toString() === campaignId
-        );
-        setCallLogs(campaignCalls);
+      if (!report || !report.campaign) {
+        throw new Error('Campaign not found');
       }
+
+      // Set campaign data
+      setCampaign(report.campaign);
+
+      // Set statistics from backend calculations
+      const backendStats = report.statistics;
+      setStats({
+        totalNumbers: report.campaign.totalContacts || 0,
+        completedCalls: backendStats.completedCalls || 0,
+        failedCalls: backendStats.failedCalls || 0,
+        voicemailCalls: backendStats.voicemailCalls || 0,
+        queuedCalls: report.campaign.queuedCalls || 0,
+        noAnswerCalls: backendStats.noAnswerCalls || 0,
+        busyCalls: backendStats.busyCalls || 0,
+        notReachable: backendStats.notReachable || 0,
+        pickupRate: backendStats.pickupRate || 0,
+        attemptsMade: backendStats.attemptsMade || 0,
+      });
+
+      // Set credits consumed from backend
+      setCreditsConsumed(backendStats.totalCreditsConsumed || 0);
+
+      console.log('📊 Campaign loaded:', {
+        name: report.campaign.name,
+        totalContacts: report.campaign.totalContacts,
+        totalCalls: backendStats.totalCalls,
+        totalCreditsConsumed: backendStats.totalCreditsConsumed,
+        attemptsMade: backendStats.attemptsMade,
+        pickupRate: backendStats.pickupRate + '%'
+      });
     } catch (err) {
       console.error('Error fetching campaign details:', err);
-      setError(err.response?.data?.error || err.message || 'Failed to load campaign details');
+      const errorMessage = err.response?.data?.error || 
+                          err.response?.data?.message || 
+                          err.message || 
+                          'Failed to load campaign details';
+      setError(errorMessage);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch call logs with pagination
+  const fetchCallLogs = async () => {
+    try {
+      setLoadingCalls(true);
+      console.log(`📞 Fetching call logs - Page ${currentPage}, Limit ${entriesPerPage}...`);
+
+      const callsResponse = await campaignAPI.getCampaignCalls(campaignId, {
+        page: currentPage,
+        limit: entriesPerPage
+      });
+
+      // Extract data from response
+      const data = callsResponse.data || callsResponse;
+      const campaignCalls = data.callLogs || [];
+
+      console.log('📞 Loaded', campaignCalls.length, 'calls for analytics');
+      console.log('📊 Pagination:', {
+        page: data.page,
+        total: data.total,
+        pages: data.pages
+      });
+
+      setCallLogs(campaignCalls);
+      setTotalCalls(data.total || 0);
+      setTotalPages(data.pages || 1);
+      setCurrentPage(data.page || 1);
+    } catch (error) {
+      console.error('Error fetching call logs:', error);
+    } finally {
+      setLoadingCalls(false);
     }
   };
 
@@ -145,42 +184,38 @@ const CampaignReportDetail = () => {
   const calculateStats = () => {
     if (!campaign && !stats) return null;
 
-    const totalCalls = campaign?.phoneNumbers?.length || stats?.totalNumbers || 0;
-    const completed = campaign?.completedCalls || stats?.completedCalls || 0;
-    const failed = campaign?.failedCalls || stats?.failedCalls || 0;
-    const pickedUp = callLogs.filter(call => 
-      call.status === 'completed' || call.status === 'in-progress'
-    ).length;
-    const pickupRate = totalCalls > 0 ? ((pickedUp / totalCalls) * 100).toFixed(0) : 0;
-    
-    // Calculate not reachable
-    const notReachable = callLogs.filter(call => 
-      call.status === 'no-answer' || call.status === 'busy' || call.status === 'failed'
-    ).length;
-    const noAnswer = callLogs.filter(call => call.status === 'no-answer').length;
-    const busy = callLogs.filter(call => call.status === 'busy').length;
-    const failedCount = callLogs.filter(call => call.status === 'failed').length;
-    
-    // Calculate interaction
-    const noInteraction = callLogs.filter(call => 
+    // Use stats from backend (already calculated)
+    const totalCalls = stats?.totalNumbers || 0;  // Campaign target
+    const attemptsMade = stats?.attemptsMade || 0;
+    const completed = stats?.completedCalls || 0;
+    const failed = stats?.failedCalls || 0;
+    const voicemail = stats?.voicemailCalls || 0;
+    const queued = stats?.queuedCalls || 0;
+    const pickupRate = stats?.pickupRate || 0;
+    const notReachable = stats?.notReachable || 0;
+    const noAnswer = stats?.noAnswerCalls || 0;
+    const busy = stats?.busyCalls || 0;
+
+    // For analytics tab, we still need call logs for detailed filtering
+    const noInteraction = callLogs.filter(call =>
       call.status === 'completed' && (!call.transcript || call.transcript.length === 0)
     ).length;
-    
-    const pending = totalCalls - completed - failed;
 
     return {
-      totalCalls,
+      totalCalls,  // Campaign target
+      attemptsMade,  // From backend
       completed,
       failed,
-      pickedUp,
-      pickupRate,
-      notReachable,
+      voicemail,
+      pickedUp: completed,  // Picked up = completed calls
+      pickupRate,  // From backend as number
+      notReachable,  // From backend
       noAnswer,
       busy,
-      failedCount,
+      failedCount: failed,
       noInteraction,
-      pending,
-      pendingPercent: totalCalls > 0 ? ((pending / totalCalls) * 100).toFixed(0) : 0
+      pending: queued,
+      pendingPercent: totalCalls > 0 ? ((queued / totalCalls) * 100).toFixed(0) : 0
     };
   };
 
@@ -214,15 +249,16 @@ const CampaignReportDetail = () => {
 
   const getStatusBadge = (status) => {
     const styles = {
-      'completed': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-      'failed': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-      'in-progress': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-      'no-answer': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-      'busy': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
+      'completed': 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+      'failed': 'bg-red-50 text-red-700 border border-red-200',
+      'in-progress': 'bg-blue-50 text-blue-700 border border-blue-200',
+      'no-answer': 'bg-zinc-100 text-zinc-700 border border-zinc-200',
+      'busy': 'bg-orange-50 text-orange-700 border border-orange-200',
     };
     return (
-      <span className={`px-3 py-1 text-xs font-semibold rounded-full capitalize ${styles[status] || 'bg-gray-100 text-gray-800'}`}>
-        {status || 'unknown'}
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap ${styles[status] || 'bg-zinc-100 text-zinc-700 border border-zinc-200'}`}>
+        <span className="h-1.5 w-1.5 rounded-full bg-current flex-shrink-0" />
+        {status ? status.charAt(0).toUpperCase() + status.slice(1).replace('-', ' ') : 'unknown'}
       </span>
     );
   };
@@ -231,13 +267,15 @@ const CampaignReportDetail = () => {
     const hasInteraction = call.transcript && call.transcript.length > 0;
     if (hasInteraction) {
       return (
-        <span className="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span className="h-1.5 w-1.5 rounded-full bg-current flex-shrink-0" />
           Interaction
         </span>
       );
     }
     return (
-      <span className="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-zinc-100 text-zinc-700 border border-zinc-200">
+        <span className="h-1.5 w-1.5 rounded-full bg-current flex-shrink-0" />
         No Interaction
       </span>
     );
@@ -245,10 +283,10 @@ const CampaignReportDetail = () => {
 
   if (loading) {
     return (
-      <div className="p-6 flex items-center justify-center min-h-screen">
+      <div className="space-y-6 flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <FaSpinner className="animate-spin text-primary-500 mx-auto mb-4" size={48} />
-          <p className="text-gray-500 dark:text-gray-400">Loading campaign details...</p>
+          <FaSpinner className="animate-spin text-emerald-500 mx-auto mb-4" size={48} />
+          <p className="text-zinc-500 text-sm">Loading campaign details...</p>
         </div>
       </div>
     );
@@ -256,13 +294,13 @@ const CampaignReportDetail = () => {
 
   if (error || !campaign) {
     return (
-      <div className="p-6">
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-          <p className="text-red-800 dark:text-red-200 font-medium">Error loading campaign</p>
-          <p className="text-red-600 dark:text-red-300 text-sm mt-1">{error || 'Campaign not found'}</p>
+      <div className="space-y-6">
+        <div className="glass-card border-l-4 border-red-500/70 bg-red-50/80 p-4">
+          <p className="text-red-800 font-medium">Error loading campaign</p>
+          <p className="text-red-600 text-sm mt-1">{error || 'Campaign not found'}</p>
           <button
             onClick={() => navigate('/delivery-reports')}
-            className="mt-4 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+            className="mt-4 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full text-xs font-medium transition-colors"
           >
             Back to Reports
           </button>
@@ -274,208 +312,227 @@ const CampaignReportDetail = () => {
   const calculatedStats = calculateStats();
 
   return (
-    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4 sm:mb-6">
+      <div className="flex items-center justify-between">
         <button
           onClick={() => navigate('/delivery-reports')}
-          className="flex items-center space-x-2 px-4 py-2 bg-white dark:bg-gray-800 border-2 border-indigo-300 dark:border-indigo-600 rounded-lg text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all font-semibold shadow-sm"
+          className="inline-flex items-center gap-2 px-4 py-2 border border-zinc-200 bg-white rounded-full text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition-all"
         >
-          <FaArrowLeft />
+          <FaArrowLeft size={12} />
           <span>Back to Reports</span>
         </button>
       </div>
 
       {/* Tabs */}
-      <div className="rounded-xl p-2">
-        <div className="flex space-x-2">
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`px-6 py-3 font-semibold rounded-lg transition-all ${
-              activeTab === 'overview'
-                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white'
-                : 'text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-            }`}
-          >
-            Overview
-          </button>
-          <button
-            onClick={() => setActiveTab('analytics')}
-            className={`px-6 py-3 font-semibold rounded-lg transition-all ${
-              activeTab === 'analytics'
-                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white'
-                : 'text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600'
-            }`}
-          >
-            Analytics
-          </button>
+      <div className="flex gap-2 border-b border-zinc-200">
+        <button
+          onClick={() => setActiveTab('overview')}
+          className={`px-6 py-3 text-sm font-medium transition-all border-b-2 ${
+            activeTab === 'overview'
+              ? 'border-emerald-500 text-emerald-600'
+              : 'border-transparent text-zinc-500 hover:text-zinc-700'
+          }`}
+        >
+          Overview
+        </button>
+        <button
+          onClick={() => setActiveTab('analytics')}
+          className={`px-6 py-3 text-sm font-medium transition-all border-b-2 ${
+            activeTab === 'analytics'
+              ? 'border-emerald-500 text-emerald-600'
+              : 'border-transparent text-zinc-500 hover:text-zinc-700'
+          }`}
+        >
+          Analytics
+        </button>
+      </div>
+
+      {/* Campaign Header */}
+      <div>
+        <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs text-emerald-700 mb-3">
+          <FaPhone className="h-3 w-3" />
+          <span>Campaign details</span>
+        </div>
+        <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-zinc-900">
+          Campaign: {campaign.name}
+        </h1>
+        <div className="flex items-center gap-3 mt-2">
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${
+            campaign.status === 'completed' 
+              ? 'bg-blue-50 text-blue-700 border border-blue-200'
+              : campaign.status === 'active' || campaign.status === 'running'
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+              : campaign.status === 'paused'
+              ? 'bg-yellow-50 text-yellow-700 border border-yellow-200'
+              : 'bg-zinc-100 text-zinc-700 border border-zinc-200'
+          }`}>
+            <span className="h-1.5 w-1.5 rounded-full bg-current flex-shrink-0" />
+            {campaign.status || 'unknown'}
+          </span>
         </div>
       </div>
 
-      {/* Campaign Summary */}
-      <div className="bg-gradient-to-br from-white to-indigo-50 dark:from-gray-800 dark:to-gray-900 rounded-xl border-2 border-indigo-200 dark:border-indigo-800 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-3">
-              Campaign: {campaign.name}
-            </h1>
-            <span className={`inline-block px-4 py-2 text-sm font-bold rounded-full ${
-              campaign.status === 'completed' 
-                ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white'
-                : campaign.status === 'active'
-                ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white'
-                : 'bg-gradient-to-r from-gray-400 to-gray-600 text-white'
-            }`}>
-              {campaign.status || 'unknown'}
-            </span>
-          </div>
+      {/* Campaign Info Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="glass-card p-4">
+          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-500 mb-1">Number</p>
+          <p className="text-sm font-semibold text-zinc-900">
+            {(() => {
+              // Check if phoneId is populated as an object with number
+              if (campaign.phoneId && typeof campaign.phoneId === 'object' && campaign.phoneId.number) {
+                return campaign.phoneId.number;
+              }
+              // Check if phoneId is a string (ID) or if phoneNumber exists directly
+              if (campaign.phoneNumber) {
+                return campaign.phoneNumber;
+              }
+              // Check if phoneId exists but number is missing
+              if (campaign.phoneId) {
+                console.warn('phoneId exists but number is missing:', campaign.phoneId);
+                return 'Not configured';
+              }
+              return 'N/A';
+            })()}
+          </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
-          <div className="bg-white/60 dark:bg-gray-700/60 rounded-lg p-3 border border-indigo-200 dark:border-indigo-700">
-            <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide">Number</span>
-            <p className="font-bold text-gray-900 dark:text-white mt-1">{campaign.phoneId?.number || 'N/A'}</p>
-          </div>
-          <div className="bg-white/60 dark:bg-gray-700/60 rounded-lg p-3 border border-indigo-200 dark:border-indigo-700">
-            <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide">Created By</span>
-            <p className="font-bold text-gray-900 dark:text-white mt-1">{campaign.userId?.name || campaign.userId?.email || 'N/A'}</p>
-          </div>
-          <div className="bg-white/60 dark:bg-gray-700/60 rounded-lg p-3 border border-indigo-200 dark:border-indigo-700">
-            <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide">Created On</span>
-            <p className="font-bold text-gray-900 dark:text-white mt-1 text-xs">
-              {campaign.createdAt ? new Date(campaign.createdAt).toLocaleString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: 'numeric',
-                minute: '2-digit',
-                hour12: true
-              }).replace(',', ' at') : 'N/A'}
-            </p>
-          </div>
+        <div className="glass-card p-4">
+          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-500 mb-1">Created By</p>
+          <p className="text-sm font-semibold text-zinc-900">{campaign.userId?.name || campaign.userId?.email || 'N/A'}</p>
+        </div>
+        <div className="glass-card p-4">
+          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-500 mb-1">Created On</p>
+          <p className="text-sm font-semibold text-zinc-900">
+            {campaign.createdAt ? new Date(campaign.createdAt).toLocaleString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true
+            }).replace(',', ' at') : 'N/A'}
+          </p>
         </div>
       </div>
 
       {activeTab === 'overview' && calculatedStats && (
         <>
           {/* Campaign Overview Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 hover:shadow-md transition-all">
-              <div className="flex items-center gap-4">
-                <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3 flex-shrink-0">
-                  <FaPhone className="text-blue-600 dark:text-blue-400" size={20} />
-                </div>
-                <div className="flex-1">
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
-                    {calculatedStats.totalCalls}
-                  </p>
-                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Campaign target</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 hover:shadow-md transition-all">
-              <div className="flex items-center gap-4">
-                <div className="bg-indigo-50 dark:bg-indigo-900/30 rounded-lg p-3 flex-shrink-0">
-                  <FaPlay className="text-indigo-600 dark:text-indigo-400" size={20} />
-                </div>
-                <div className="flex-1">
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
-                    {calculatedStats.totalCalls}
-                  </p>
-                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Attempts made</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 hover:shadow-md transition-all">
-              <div className="flex items-center gap-4">
-                <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-3 flex-shrink-0">
-                  <FaCheckCircle className="text-green-600 dark:text-green-400" size={20} />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-baseline gap-2 mb-1">
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                      {calculatedStats.pickedUp}
-                    </p>
-                    <p className="text-lg font-semibold text-green-600 dark:text-green-400">{calculatedStats.pickupRate}%</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="relative overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-[0_18px_35px_rgba(15,23,42,0.08)] kpi-gradient">
+              <div className="relative p-4 flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-500">Campaign Target</p>
+                    <div className="text-xl font-semibold tabular-nums text-zinc-900">{calculatedStats.totalCalls}</div>
                   </div>
-                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Pickup rate</p>
+                  <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 bg-white">
+                    <FaPhone className="h-4 w-4 text-zinc-500" />
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 hover:shadow-md transition-all">
-              <div className="flex items-center gap-4">
-                <div className="bg-purple-50 dark:bg-purple-900/30 rounded-lg p-3 flex-shrink-0">
-                  <FaDollarSign className="text-purple-600 dark:text-purple-400" size={20} />
+            <div className="relative overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-[0_18px_35px_rgba(15,23,42,0.08)] kpi-gradient">
+              <div className="relative p-4 flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-500">Attempts Made</p>
+                    <div className="text-xl font-semibold tabular-nums text-zinc-900">{calculatedStats.attemptsMade}</div>
+                  </div>
+                  <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 bg-white">
+                    <FaPlay className="h-4 w-4 text-zinc-500" />
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
-                    {calculatedStats.totalCalls * 10}
-                  </p>
-                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Campaign Credits</p>
+              </div>
+            </div>
+
+            <div className="relative overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-[0_18px_35px_rgba(15,23,42,0.08)] kpi-gradient">
+              <div className="relative p-4 flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-500">Pickup Rate</p>
+                    <div className="text-xl font-semibold tabular-nums text-emerald-500">{calculatedStats.pickupRate}%</div>
+                  </div>
+                  <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-100 to-teal-100">
+                    <FaCheckCircle className="h-4 w-4 text-emerald-500" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-[0_18px_35px_rgba(15,23,42,0.08)] kpi-gradient">
+              <div className="relative p-4 flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-500">Campaign Credits</p>
+                    <div className="text-xl font-semibold tabular-nums text-zinc-900">{creditsConsumed}</div>
+                  </div>
+                  <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 bg-white">
+                    <FaDollarSign className="h-4 w-4 text-zinc-500" />
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Campaign Outcomes Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 hover:shadow-md transition-all">
-              <div className="flex items-center gap-4">
-                <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-3 flex-shrink-0">
-                  <FaCheckCircle className="text-green-600 dark:text-green-400" size={20} />
-                </div>
-                <div className="flex-1">
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
-                    {calculatedStats.completed}
-                  </p>
-                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">High engagement</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 hover:shadow-md transition-all">
-              <div className="flex items-center gap-4">
-                <div className="bg-orange-50 dark:bg-orange-900/30 rounded-lg p-3 flex-shrink-0">
-                  <FaCircle className="text-orange-600 dark:text-orange-400" size={20} />
-                </div>
-                <div className="flex-1">
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
-                    {calculatedStats.noInteraction}
-                  </p>
-                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">No or Minimal engagement</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 hover:shadow-md transition-all">
-              <div className="flex items-center gap-4">
-                <div className="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg p-3 flex-shrink-0">
-                  <FaRedo className="text-cyan-600 dark:text-cyan-400" size={20} />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-baseline gap-2 mb-1">
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                      {calculatedStats.pending}
-                    </p>
-                    <p className="text-lg font-semibold text-cyan-600 dark:text-cyan-400">{calculatedStats.pendingPercent}%</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="relative overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-[0_18px_35px_rgba(15,23,42,0.08)] kpi-gradient">
+              <div className="relative p-4 flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-500">High Engagement</p>
+                    <div className="text-xl font-semibold tabular-nums text-zinc-900">{calculatedStats.completed}</div>
                   </div>
-                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Remaining</p>
+                  <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-100 to-teal-100">
+                    <FaCheckCircle className="h-4 w-4 text-emerald-500" />
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 hover:shadow-md transition-all">
-              <div className="flex items-center gap-4">
-                <div className="bg-red-50 dark:bg-red-900/30 rounded-lg p-3 flex-shrink-0">
-                  <FaTimesCircle className="text-red-600 dark:text-red-400" size={20} />
+            <div className="relative overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-[0_18px_35px_rgba(15,23,42,0.08)] kpi-gradient">
+              <div className="relative p-4 flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-500">No or Minimal Engagement</p>
+                    <div className="text-xl font-semibold tabular-nums text-zinc-900">{calculatedStats.noInteraction}</div>
+                  </div>
+                  <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 bg-white">
+                    <FaCircle className="h-4 w-4 text-zinc-500" />
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
-                    {calculatedStats.notReachable}
-                  </p>
-                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Failed calls</p>
+              </div>
+            </div>
+
+            <div className="relative overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-[0_18px_35px_rgba(15,23,42,0.08)] kpi-gradient">
+              <div className="relative p-4 flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-500">Remaining</p>
+                    <div className="flex items-baseline gap-2">
+                      <div className="text-xl font-semibold tabular-nums text-zinc-900">{calculatedStats.pending}</div>
+                      <span className="text-sm font-medium text-emerald-500">{calculatedStats.pendingPercent}%</span>
+                    </div>
+                  </div>
+                  <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 bg-white">
+                    <FaRedo className="h-4 w-4 text-zinc-500" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-[0_18px_35px_rgba(15,23,42,0.08)] kpi-gradient">
+              <div className="relative p-4 flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-500">Failed Calls</p>
+                    <div className="text-xl font-semibold tabular-nums text-zinc-900">{calculatedStats.notReachable}</div>
+                  </div>
+                  <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 bg-white">
+                    <FaTimesCircle className="h-4 w-4 text-zinc-500" />
+                  </div>
                 </div>
               </div>
             </div>
@@ -486,10 +543,10 @@ const CampaignReportDetail = () => {
       {activeTab === 'analytics' && (
         <div className="space-y-4">
           {/* Filters */}
-          <div className="bg-gradient-to-br from-white to-blue-50 dark:from-gray-800 dark:to-gray-900 rounded-xl shadow-md border-2 border-blue-200 dark:border-blue-800 p-4">
+          <div className="glass-panel p-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
-              <div className="relative" ref={phoneFilterRef}>
-                <label className="block text-sm font-semibold text-blue-700 dark:text-blue-300 mb-2">
+              <div className="relative" ref={phoneFilterRef} style={{ zIndex: 1000 }}>
+                <label className="block text-xs font-medium text-zinc-600 mb-2">
                   Filter Phone Number
                 </label>
                 <button
@@ -500,7 +557,7 @@ const CampaignReportDetail = () => {
                       setTempSelectedPhones([...phoneFilter]);
                     }
                   }}
-                  className="w-full px-4 py-2 border-2 border-blue-300 dark:border-blue-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all flex items-center justify-between"
+                  className="w-full px-4 py-2 border border-zinc-200 rounded-lg bg-white text-zinc-900 focus:ring-2 focus:ring-emerald-500/60 focus:border-emerald-400 transition-all flex items-center justify-between text-xs"
                 >
                   <span className="text-left">
                     {phoneFilter.length === 0
@@ -509,28 +566,28 @@ const CampaignReportDetail = () => {
                       ? phoneFilter[0]
                       : `${phoneFilter.length} selected`}
                   </span>
-                  <FaChevronDown className={`ml-2 transition-transform ${phoneFilterOpen ? 'rotate-180' : ''}`} />
+                  <FaChevronDown className={`ml-2 transition-transform ${phoneFilterOpen ? 'rotate-180' : ''}`} size={12} />
                 </button>
                 
                 {phoneFilterOpen && (
-                  <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-xl max-h-96 overflow-hidden flex flex-col">
+                  <div className="absolute w-full mt-1 glass-card border border-zinc-200 rounded-lg shadow-xl max-h-96 overflow-hidden flex flex-col" style={{ zIndex: 1001 }}>
                     {/* Search Bar */}
-                    <div className="p-3 border-b border-gray-200 dark:border-gray-700">
+                    <div className="p-3 border-b border-zinc-200">
                       <div className="relative">
-                        <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
+                        <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400" size={14} />
                         <input
                           type="text"
                           placeholder="Search"
                           value={phoneSearch}
                           onChange={(e) => setPhoneSearch(e.target.value)}
-                          className="w-full pl-9 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                          className="w-full pl-9 pr-3 py-2 border border-zinc-200 rounded bg-white text-zinc-900 text-xs focus:ring-2 focus:ring-emerald-500/60 focus:border-emerald-400"
                           autoFocus
                         />
                       </div>
                     </div>
 
                     {/* Select All Checkbox */}
-                    <div className="p-2 border-b border-gray-200 dark:border-gray-700">
+                    <div className="p-2 border-b border-zinc-200">
                       <label className="flex items-center cursor-pointer">
                         <input
                           type="checkbox"
@@ -543,23 +600,23 @@ const CampaignReportDetail = () => {
                               setTempSelectedPhones(tempSelectedPhones.filter(p => !filteredPhones.includes(p)));
                             }
                           }}
-                          className="mr-2 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                          className="mr-2 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
                         />
-                        <span className="text-sm text-gray-700 dark:text-gray-300">(Select All)</span>
+                        <span className="text-xs text-zinc-700">(Select All)</span>
                       </label>
                     </div>
 
                     {/* Phone Numbers List */}
                     <div className="overflow-y-auto flex-1">
                       {filteredPhones.length === 0 ? (
-                        <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                        <div className="p-4 text-center text-xs text-zinc-500">
                           No phone numbers found
                         </div>
                       ) : (
                         filteredPhones.map((phone) => (
                           <label
                             key={phone}
-                            className="flex items-center px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                            className="flex items-center px-3 py-2 hover:bg-zinc-50 cursor-pointer"
                           >
                             <input
                               type="checkbox"
@@ -571,16 +628,16 @@ const CampaignReportDetail = () => {
                                   setTempSelectedPhones(tempSelectedPhones.filter((p) => p !== phone));
                                 }
                               }}
-                              className="mr-3 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                              className="mr-3 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
                             />
-                            <span className="text-sm text-gray-900 dark:text-white">{phone}</span>
+                            <span className="text-xs text-zinc-900">{phone}</span>
                           </label>
                         ))
                       )}
                     </div>
 
                     {/* OK and Cancel Buttons */}
-                    <div className="p-3 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
+                    <div className="p-3 border-t border-zinc-200 flex justify-end gap-2">
                       <button
                         type="button"
                         onClick={() => {
@@ -588,7 +645,7 @@ const CampaignReportDetail = () => {
                           setTempSelectedPhones([...phoneFilter]);
                           setPhoneSearch('');
                         }}
-                        className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                        className="px-4 py-2 text-xs border border-zinc-300 text-zinc-700 rounded-full hover:bg-zinc-50 transition-colors font-medium"
                       >
                         Cancel
                       </button>
@@ -599,7 +656,7 @@ const CampaignReportDetail = () => {
                           setPhoneFilterOpen(false);
                           setPhoneSearch('');
                         }}
-                        className="px-4 py-2 text-sm bg-primary-600 text-white rounded hover:bg-primary-700 transition-colors font-medium"
+                        className="px-4 py-2 text-xs bg-emerald-500 hover:bg-emerald-600 text-white rounded-full transition-colors font-medium"
                       >
                         OK
                       </button>
@@ -608,13 +665,13 @@ const CampaignReportDetail = () => {
                 )}
               </div>
               <div>
-                <label className="block text-sm font-semibold text-blue-700 dark:text-blue-300 mb-2">
+                <label className="block text-xs font-medium text-zinc-600 mb-2">
                   Filter Call Status
                 </label>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full px-4 py-2 border-2 border-blue-300 dark:border-blue-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  className="w-full px-4 py-2 border border-zinc-200 rounded-lg bg-white text-zinc-900 focus:ring-2 focus:ring-emerald-500/60 focus:border-emerald-400 text-xs"
                 >
                   <option value="">All Status</option>
                   <option value="completed">Completed</option>
@@ -625,13 +682,13 @@ const CampaignReportDetail = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-blue-700 dark:text-blue-300 mb-2">
+                <label className="block text-xs font-medium text-zinc-600 mb-2">
                   Filter Interaction
                 </label>
                 <select
                   value={interactionFilter}
                   onChange={(e) => setInteractionFilter(e.target.value)}
-                  className="w-full px-4 py-2 border-2 border-blue-300 dark:border-blue-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  className="w-full px-4 py-2 border border-zinc-200 rounded-lg bg-white text-zinc-900 focus:ring-2 focus:ring-emerald-500/60 focus:border-emerald-400 text-xs"
                 >
                   <option value="">All</option>
                   <option value="interaction">Has Interaction</option>
@@ -639,13 +696,16 @@ const CampaignReportDetail = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-blue-700 dark:text-blue-300 mb-2">
+                <label className="block text-xs font-medium text-zinc-600 mb-2">
                   Show List
                 </label>
                 <select
                   value={entriesPerPage}
-                  onChange={(e) => setEntriesPerPage(Number(e.target.value))}
-                  className="w-full px-4 py-2 border-2 border-blue-300 dark:border-blue-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  onChange={(e) => {
+                    setEntriesPerPage(Number(e.target.value));
+                    setCurrentPage(1); // Reset to first page when changing limit
+                  }}
+                  className="w-full px-4 py-2 border border-zinc-200 rounded-lg bg-white text-zinc-900 focus:ring-2 focus:ring-emerald-500/60 focus:border-emerald-400 text-xs"
                 >
                   <option value={25}>25</option>
                   <option value={50}>50</option>
@@ -653,10 +713,10 @@ const CampaignReportDetail = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-blue-700 dark:text-blue-300 mb-2">
+                <label className="block text-xs font-medium text-zinc-600 mb-2">
                   Total Calls
                 </label>
-                <span className="w-full block text-sm font-semibold text-indigo-700 dark:text-indigo-300 bg-white dark:bg-gray-700 px-4 py-2 rounded-lg border-2 border-indigo-300 dark:border-indigo-600 text-center">
+                <span className="w-full block text-xs font-semibold text-zinc-700 bg-white px-4 py-2 rounded-lg border border-zinc-200 text-center">
                   {filteredCallLogs.length} calls
                 </span>
               </div>
@@ -664,84 +724,71 @@ const CampaignReportDetail = () => {
           </div>
 
           {/* Call Lines Table */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border-2 border-indigo-200 dark:border-indigo-800 overflow-hidden">
-            <div className="overflow-x-auto mobile-scrollbar">
-              <table className="w-full text-sm">
-                <thead className="bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 text-white uppercase text-xs tracking-wider shadow-lg">
-                  <tr>
-                    <th className="px-6 py-4 text-left font-bold">Call Date</th>
-                    <th className="px-6 py-4 text-left font-bold">Phone Number</th>
-                    <th className="px-6 py-4 text-left font-bold">Call Status</th>
-                    <th className="px-6 py-4 text-left font-bold">Interaction</th>
-                    <th className="px-6 py-4 text-left font-bold">Duration</th>
-                    <th className="px-6 py-4 text-left font-bold">Recording</th>
-                    <th className="px-6 py-4 text-left font-bold">Transcript</th>
+          <div className="glass-panel overflow-hidden">
+            <div className="overflow-x-auto scrollbar-thin">
+              <table className="w-full min-w-[800px]">
+                <thead>
+                  <tr className="bg-gradient-to-r from-emerald-50/80 to-teal-50/80 border-b border-zinc-200">
+                    <th className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 uppercase tracking-[0.16em] whitespace-nowrap">Call Date</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 uppercase tracking-[0.16em] whitespace-nowrap">Phone Number</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 uppercase tracking-[0.16em] whitespace-nowrap">Call Status</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 uppercase tracking-[0.16em] whitespace-nowrap">Interaction</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 uppercase tracking-[0.16em] whitespace-nowrap">Duration</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 uppercase tracking-[0.16em] whitespace-nowrap">Recording</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 uppercase tracking-[0.16em] whitespace-nowrap">Transcript</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {filteredCallLogs.length === 0 ? (
+                <tbody>
+                  {loadingCalls ? (
                     <tr>
-                      <td colSpan="7" className="px-6 py-10 text-center text-gray-500 dark:text-gray-400">
+                      <td colSpan="7" className="px-4 py-12 text-center text-xs text-zinc-500">
+                        <FaSpinner className="inline-block mr-2 animate-spin" />
+                        Loading calls...
+                      </td>
+                    </tr>
+                  ) : filteredCallLogs.length === 0 ? (
+                    <tr>
+                      <td colSpan="7" className="px-4 py-8 text-center text-zinc-500 text-sm">
                         No calls found
                       </td>
                     </tr>
                   ) : (
-                    filteredCallLogs.slice(0, entriesPerPage).map((call) => (
-                      <tr key={call._id || call.callSid} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <td className="px-6 py-4">
-                          {call.startTime ? (
-                            <div className="flex items-center space-x-2">
-                              <FaCalendar className="text-gray-400" size={14} />
-                              <span className="text-gray-900 dark:text-white">
-                                {new Date(call.startTime).toLocaleString()}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-gray-500 dark:text-gray-400">Not called</span>
-                          )}
+                    filteredCallLogs.map((call) => (
+                      <tr key={call._id || call.callSid} className="border-b border-zinc-100 last:border-0 hover:bg-zinc-50/50 transition-colors">
+                        <td className="px-4 py-3 text-xs text-zinc-700">
+                          {call.startTime ? new Date(call.startTime).toLocaleString() : 'Not called'}
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center space-x-2">
-                            <FaPhone className="text-gray-400" size={14} />
-                            <span className="text-gray-900 dark:text-white">{call.phoneNumber}</span>
-                          </div>
+                        <td className="px-4 py-3 text-xs text-zinc-700">{call.phoneNumber || '-'}</td>
+                        <td className="px-4 py-3">{getStatusBadge(call.status)}</td>
+                        <td className="px-4 py-3">{getInteractionBadge(call)}</td>
+                        <td className="px-4 py-3 text-xs text-zinc-700">
+                          {call.duration ? formatDuration(call.duration) : '-'}
                         </td>
-                        <td className="px-6 py-4">{getStatusBadge(call.status)}</td>
-                        <td className="px-6 py-4">{getInteractionBadge(call)}</td>
-                        <td className="px-6 py-4">
-                          {call.duration ? (
-                            <div className="flex items-center space-x-2">
-                              <FaClock className="text-gray-400" size={14} />
-                              <span className="text-gray-900 dark:text-white">{formatDuration(call.duration)}</span>
-                            </div>
-                          ) : (
-                            <span className="text-gray-500 dark:text-gray-400">-</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4">
+                        <td className="px-4 py-3">
                           {call.recordingUrl ? (
-                            <div className="flex items-center space-x-2">
-                              <FaPlay className="text-primary-500" size={14} />
-                              <span className="text-gray-900 dark:text-white">0:00</span>
-                              <FaDownload className="text-gray-400" size={14} />
-                            </div>
+                            <audio controls className="h-8 w-full max-w-xs">
+                              <source src={call.recordingUrl} type="audio/mpeg" />
+                              <source src={call.recordingUrl} type="audio/wav" />
+                              Your browser does not support the audio element.
+                            </audio>
                           ) : (
-                            <span className="text-gray-500 dark:text-gray-400">No recording</span>
+                            <span className="text-xs text-zinc-500">No recording</span>
                           )}
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-4 py-3 whitespace-nowrap">
                           {call.transcript && call.transcript.length > 0 ? (
                             <button
                               onClick={() => {
                                 setTranscriptCall(call);
                                 setTranscriptModalOpen(true);
                               }}
-                              className="px-4 py-1 text-xs font-semibold text-white bg-primary-500 hover:bg-primary-600 rounded-lg transition-colors"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full text-[11px] font-medium transition-colors"
                             >
-                              View
+                              <FaDownload size={12} />
+                              <span>View</span>
                             </button>
                           ) : (
-                            <span className="text-gray-500 dark:text-gray-400">No transcript</span>
+                            <span className="text-xs text-zinc-500">No transcript</span>
                           )}
                         </td>
                       </tr>
@@ -750,16 +797,98 @@ const CampaignReportDetail = () => {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination Controls */}
+            {!loadingCalls && filteredCallLogs.length > 0 && (
+              <div className="glass-card mt-4 p-4">
+                <div className="flex items-center justify-between">
+                  {/* Pagination Info */}
+                  <div className="text-xs text-zinc-600">
+                    Showing page {currentPage} of {totalPages} ({totalCalls} total calls)
+                  </div>
+
+                  {/* Pagination Buttons */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCurrentPage(1)}
+                      disabled={currentPage === 1}
+                      className="px-3 py-1.5 text-xs border border-zinc-300 rounded-lg hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      First
+                    </button>
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className="px-3 py-1.5 text-xs border border-zinc-300 rounded-lg hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Previous
+                    </button>
+
+                    {/* Page Numbers */}
+                    <div className="flex items-center gap-1">
+                      {[...Array(totalPages)].map((_, idx) => {
+                        const page = idx + 1;
+                        // Show first 3, last 3, and pages around current
+                        if (
+                          page === 1 ||
+                          page === totalPages ||
+                          (page >= currentPage - 1 && page <= currentPage + 1)
+                        ) {
+                          return (
+                            <button
+                              key={page}
+                              onClick={() => setCurrentPage(page)}
+                              className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                                currentPage === page
+                                  ? 'bg-emerald-500 text-white'
+                                  : 'border border-zinc-300 hover:bg-zinc-50'
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          );
+                        } else if (
+                          page === currentPage - 2 ||
+                          page === currentPage + 2
+                        ) {
+                          return (
+                            <span key={page} className="px-2 text-zinc-400">
+                              ...
+                            </span>
+                          );
+                        }
+                        return null;
+                      })}
+                    </div>
+
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                      className="px-3 py-1.5 text-xs border border-zinc-300 rounded-lg hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Next
+                    </button>
+                    <button
+                      onClick={() => setCurrentPage(totalPages)}
+                      disabled={currentPage === totalPages}
+                      className="px-3 py-1.5 text-xs border border-zinc-300 rounded-lg hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Last
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
       {transcriptModalOpen && transcriptCall && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden">
-            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 px-6 py-4">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="glass-card rounded-2xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden">
+            <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4">
               <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Transcript</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
+                <h3 className="text-lg font-semibold text-zinc-900">Transcript</h3>
+                <p className="text-xs text-zinc-500 mt-1">
                   {transcriptCall.phoneNumber} •{' '}
                   {transcriptCall.startTime
                     ? new Date(transcriptCall.startTime).toLocaleString()
@@ -771,7 +900,7 @@ const CampaignReportDetail = () => {
                   setTranscriptModalOpen(false);
                   setTranscriptCall(null);
                 }}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl font-bold"
+                className="text-zinc-400 hover:text-zinc-600 text-xl font-bold"
                 aria-label="Close transcript"
               >
                 ×
@@ -782,36 +911,36 @@ const CampaignReportDetail = () => {
                 transcriptCall.transcript.map((entry, idx) => (
                   <div
                     key={idx}
-                    className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-800/50"
+                    className="border border-zinc-200 rounded-lg p-4 bg-zinc-50"
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-300 uppercase tracking-wider">
+                      <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">
                         {entry.role || 'Assistant'}
                       </span>
                       {entry.timestamp && (
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                        <span className="text-xs text-zinc-500">
                           {new Date(entry.timestamp).toLocaleString()}
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-gray-800 dark:text-gray-100 whitespace-pre-wrap leading-relaxed">
+                    <p className="text-sm text-zinc-800 whitespace-pre-wrap leading-relaxed">
                       {entry.content || entry.text || '—'}
                     </p>
                   </div>
                 ))
               ) : (
-                <div className="text-center text-gray-500 dark:text-gray-400 text-sm">
+                <div className="text-center text-zinc-500 text-sm">
                   No transcript available for this call.
                 </div>
               )}
             </div>
-            <div className="border-t border-gray-200 dark:border-gray-800 px-6 py-4 flex justify-end">
+            <div className="border-t border-zinc-200 px-6 py-4 flex justify-end">
               <button
                 onClick={() => {
                   setTranscriptModalOpen(false);
                   setTranscriptCall(null);
                 }}
-                className="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-semibold transition-colors"
+                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full text-xs font-medium transition-colors"
               >
                 Close
               </button>
@@ -824,4 +953,5 @@ const CampaignReportDetail = () => {
 };
 
 export default CampaignReportDetail;
+
 

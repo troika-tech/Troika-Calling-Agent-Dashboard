@@ -16,8 +16,6 @@ import {
   
   FaTimes,
   
-  
-  FaPhone,
   FaList,
   FaFileDownload,
   FaFileAlt,
@@ -26,7 +24,7 @@ import {
 
 
 
-const Sidebar = ({ darkMode, toggleDarkMode, isOpen = false, onClose }) => {
+const Sidebar = ({ isOpen = false, onClose }) => {
 
   const [collapsed, setCollapsed] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -95,11 +93,11 @@ const Sidebar = ({ darkMode, toggleDarkMode, isOpen = false, onClose }) => {
 
           fixed lg:static top-0 bottom-0 left-0 z-[60] lg:z-40
 
-          w-full lg:w-72
+          w-full lg:w-64
 
-          bg-white dark:bg-gray-800
+          bg-white/90 backdrop-blur-xl
 
-          border-r border-gray-200 dark:border-gray-700
+          border-r border-zinc-200
 
           lg:translate-x-0
 
@@ -117,74 +115,43 @@ const Sidebar = ({ darkMode, toggleDarkMode, isOpen = false, onClose }) => {
 
         {/* Header */}
 
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-3 px-6 h-16 border-b border-zinc-200">
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-
-            <div className="w-10 h-10 bg-primary-500 rounded-lg flex items-center justify-center">
-
-              <FaPhone className="text-white" size={20} />
-
-            </div>
-
-            <div className="hidden lg:block">
-
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-
-                AI Calling Agent
-
-              </h1>
-
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-
-                Dashboard
-
-              </p>
-
-            </div>
-
-            {!collapsed && (
-
-              <div className="lg:hidden">
-
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-
-                  AI Calling Agent
-
-                </h1>
-
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-
-                  Dashboard
-
-                </p>
-
-              </div>
-
-            )}
-
-            </div>
-            {/* Close button for mobile */}
-            <button
-              onClick={() => {
-                setCollapsed(true);
-                if (onClose) onClose();
-              }}
-              className="lg:hidden p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              aria-label="Close sidebar"
-            >
-              <FaTimes size={20} />
-            </button>
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl overflow-hidden">
+            <img 
+              src="/images/dashboard-logo.png" 
+              alt="Dashboard Logo" 
+              className="h-full w-full object-contain"
+            />
           </div>
-
+          <div className="hidden lg:block">
+            <div className="text-sm font-semibold tracking-tight text-zinc-900">AI Calling Agent</div>
+            <div className="text-xs text-zinc-500">Dashboard</div>
+          </div>
+          {!collapsed && (
+            <div className="lg:hidden">
+              <div className="text-sm font-semibold tracking-tight text-zinc-900">AI Calling Agent</div>
+              <div className="text-xs text-zinc-500">Operations Dashboard</div>
+            </div>
+          )}
+          {/* Close button for mobile */}
+          <button
+            onClick={() => {
+              setCollapsed(true);
+              if (onClose) onClose();
+            }}
+            className="lg:hidden ml-auto p-2 rounded-lg text-zinc-700 hover:bg-zinc-100 transition-colors"
+            aria-label="Close sidebar"
+          >
+            <FaTimes size={20} />
+          </button>
         </div>
 
 
 
         {/* Navigation Menu */}
 
-        <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto scrollbar-hide">
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto scrollbar-hide">
 
           {menuItems.map((item) => {
 
@@ -216,17 +183,15 @@ const Sidebar = ({ darkMode, toggleDarkMode, isOpen = false, onClose }) => {
 
                 className={`
 
-                  flex items-center space-x-3 px-4 py-3 rounded-lg
-
-                  transition-all duration-200
+                  group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all
 
                   ${
 
                     active
 
-                      ? 'bg-primary-500 text-white shadow-md'
+                      ? 'bg-emerald-50 text-emerald-700 shadow-sm shadow-emerald-500/20'
 
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                      : 'hover:bg-emerald-50 hover:text-emerald-700 text-zinc-700'
 
                   }
 
@@ -234,9 +199,9 @@ const Sidebar = ({ darkMode, toggleDarkMode, isOpen = false, onClose }) => {
 
               >
 
-                <Icon size={20} />
+                <Icon className="h-4 w-4" />
 
-                <span className="font-medium">{item.label}</span>
+                <span>{item.label}</span>
 
               </Link>
 
@@ -250,12 +215,8 @@ const Sidebar = ({ darkMode, toggleDarkMode, isOpen = false, onClose }) => {
 
         {/* Footer */}
 
-        <div className="p-6 border-t border-gray-200 dark:border-gray-700 mt-auto">
-          <div className="text-center">
-            <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400">
-              Powered by <span className="font-semibold text-primary-600 dark:text-primary-400">Troika Tech</span>
-            </p>
-          </div>
+        <div className="px-4 py-4 border-t border-zinc-100 text-xs text-zinc-500 flex items-center justify-center gap-2 mt-auto">
+          <span className="text-zinc-400">Powered by Troika Tech</span>
         </div>
 
       </aside>
@@ -264,11 +225,11 @@ const Sidebar = ({ darkMode, toggleDarkMode, isOpen = false, onClose }) => {
 
       {/* Overlay for mobile */}
 
-      {!collapsed && (
+      {!collapsed && isMobile && (
 
         <div
 
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+          className="lg:hidden fixed inset-0 bg-black/40 z-30"
 
           onClick={() => {
             setCollapsed(true);

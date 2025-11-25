@@ -1,4 +1,5 @@
 import React from 'react';
+import { FaFileDownload } from 'react-icons/fa';
 
 const mockReports = [
   { id: 'CMP-1001', name: 'Diwali Warm Leads', creditsUsed: 320 },
@@ -9,47 +10,49 @@ const mockReports = [
 
 const DeliveryReports = () => {
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+        <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs text-emerald-700 mb-3">
+          <FaFileDownload className="h-3 w-3" />
+          <span>Export reports</span>
+        </div>
+        <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-zinc-900">
           Delivery Reports
         </h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">
+        <p className="text-sm text-zinc-500 mt-1">
           Export campaign delivery stats and credit usage.
         </p>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Campaign Reports</h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-700">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+      <div className="glass-panel overflow-hidden">
+        <div className="overflow-x-auto scrollbar-thin">
+          <table className="w-full min-w-[600px]">
+            <thead>
+              <tr className="bg-gradient-to-r from-emerald-50/80 to-teal-50/80 border-b border-zinc-200">
+                <th className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 uppercase tracking-[0.16em] whitespace-nowrap">
                   Campaign ID
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 uppercase tracking-[0.16em] whitespace-nowrap">
                   Campaign Name
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 uppercase tracking-[0.16em] whitespace-nowrap">
                   Credits Used
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 uppercase tracking-[0.16em] whitespace-nowrap">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody>
               {mockReports.map((report) => (
-                <tr key={report.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">{report.id}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">{report.name}</td>
-                  <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">{report.creditsUsed.toLocaleString()}</td>
-                  <td className="px-6 py-4 text-sm">
-                    <button className="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg text-sm font-medium transition-colors">
-                      Download Report
+                <tr key={report.id} className="border-b border-zinc-100 last:border-0 hover:bg-zinc-50/50 transition-colors">
+                  <td className="px-4 py-3 text-xs font-medium text-zinc-900">{report.id}</td>
+                  <td className="px-4 py-3 text-xs text-zinc-700">{report.name}</td>
+                  <td className="px-4 py-3 text-xs font-semibold text-emerald-600">{report.creditsUsed.toLocaleString()}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <button className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full text-[11px] font-medium transition-colors">
+                      <FaFileDownload size={12} />
+                      <span>Download</span>
                     </button>
                   </td>
                 </tr>

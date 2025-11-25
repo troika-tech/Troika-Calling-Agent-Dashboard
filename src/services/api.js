@@ -1,14 +1,22 @@
 import axios from 'axios';
+import { getApiBaseUrl } from '../config/api.config';
 
-// Use environment variable for API URL, fallback to production URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://calling-api.0804.in';
+// Get API URL from config file
+const API_BASE_URL = getApiBaseUrl();
 
+// Initialize axios with the correct URL
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 10000, // 10 second timeout to prevent hanging
 });
+
+// Function to get current API base URL
+export const getCurrentApiUrl = () => {
+  return API_BASE_URL;
+};
 
 // Request interceptor - Add JWT token to all requests
 api.interceptors.request.use(
@@ -279,18 +287,32 @@ export const campaignAPI = {
     const response = await api.get(`/api/v1/campaigns/${campaignId}`);
     return response.data;
   },
+
+  getCampaignCalls: async (campaignId, params = {}) => {
+    const response = await api.get(`/api/v1/campaigns/${campaignId}/calls`, { params });
+    return response.data;
+  },
+
+  getReport: async (campaignId) => {
+    const response = await api.get(`/api/v1/campaigns/${campaignId}/report`);
+    return response.data;
+  },
 };
 
 // Analytics APIs
 export const analyticsAPI = {
-  // Get comprehensive dashboard analytics
+  // Get comprehensive dashboard analytics - Always uses real API
   getDashboard: async (userId, timeRange = null) => {
     const params = { userId };
     if (timeRange) {
       params.startDate = timeRange.start;
       params.endDate = timeRange.end;
     }
-    const response = await api.get('/api/v1/analytics/dashboard', { params });
+    // Analytics queries can take longer, use extended timeout (30 seconds)
+    const response = await api.get('/api/v1/analytics/dashboard', { 
+      params,
+      timeout: 30000 // 30 seconds for analytics queries
+    });
     return response.data;
   },
 

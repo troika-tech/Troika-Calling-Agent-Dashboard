@@ -92,8 +92,14 @@ const Login = () => {
 
       // Handle different error types
       if (err.response?.status === 401) {
-        setError('Invalid email or password');
+        // Backend returns: { success: false, error: { code, message } }
+        const errorMessage = err.response?.data?.error?.message || err.response?.data?.message || 'Invalid email or password';
+        setError(errorMessage);
+      } else if (err.response?.data?.error?.message) {
+        // Backend structured error format
+        setError(err.response.data.error.message);
       } else if (err.response?.data?.message) {
+        // Fallback for other error formats
         setError(err.response.data.message);
       } else if (err.code === 'ERR_NETWORK' || err.message === 'Network Error') {
         setError('Cannot connect to server. Please check if the backend is running.');

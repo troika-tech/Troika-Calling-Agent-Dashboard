@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { FaPlus, FaSearch, FaEdit, FaPause, FaPlay, FaChartLine, FaTrash, FaFilter, FaSpinner, FaUsers, FaEye, FaCalendar, FaUpload, FaFileAlt, FaDownload, FaTimes } from 'react-icons/fa';
+import { FaPlus, FaSearch, FaEdit, FaPause, FaPlay, FaChartLine, FaTrash, FaFilter, FaSpinner, FaUsers, FaEye, FaCalendar, FaUpload, FaFileAlt, FaDownload, FaTimes, FaBullseye } from 'react-icons/fa';
 import { callAPI, campaignAPI } from '../services/api';
 
 const Campaigns = () => {
@@ -168,11 +168,21 @@ const Campaigns = () => {
       }
 
       const response = await campaignAPI.list(params);
+      console.log('📊 Campaigns API response:', response);
+
       // Ensure we always set an array
       const campaignsData = response.data;
       if (Array.isArray(campaignsData)) {
+        console.log('📊 Setting campaigns (array):', campaignsData.length, 'campaigns');
+        if (campaignsData.length > 0) {
+          console.log('📊 First campaign sample:', campaignsData[0]);
+        }
         setCampaigns(campaignsData);
       } else if (campaignsData && Array.isArray(campaignsData.campaigns)) {
+        console.log('📊 Setting campaigns (nested):', campaignsData.campaigns.length, 'campaigns');
+        if (campaignsData.campaigns.length > 0) {
+          console.log('📊 First campaign sample:', campaignsData.campaigns[0]);
+        }
         setCampaigns(campaignsData.campaigns);
       } else {
         console.warn('Campaigns response is not an array:', campaignsData);
@@ -480,17 +490,17 @@ const Campaigns = () => {
 
   const getStatusBadge = (status) => {
     const styles = {
-      'active': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-      'pending': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-      'paused': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
-      'completed': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-      'failed': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-      'cancel': 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200',
-      'cancelled': 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200',
+      'active': 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+      'pending': 'bg-yellow-50 text-yellow-700 border border-yellow-200',
+      'paused': 'bg-orange-50 text-orange-700 border border-orange-200',
+      'completed': 'bg-blue-50 text-blue-700 border border-blue-200',
+      'failed': 'bg-red-50 text-red-700 border border-red-200',
+      'cancel': 'bg-zinc-100 text-zinc-700 border border-zinc-200',
+      'cancelled': 'bg-zinc-100 text-zinc-700 border border-zinc-200',
     };
     return (
       <span
-        className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${styles[status] || styles.pending}`}
+        className={`px-2 py-0.5 inline-flex text-[11px] font-medium rounded-full ${styles[status] || styles.pending}`}
       >
         {status === 'cancel' || status === 'cancelled' ? 'Cancelled' : status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown'}
       </span>
@@ -545,28 +555,32 @@ const Campaigns = () => {
   }
 
   return (
-    <div className="p-0 sm:p-6 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start gap-4 px-4 sm:px-0 lg:pr-48">
+      <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs text-emerald-700 mb-3">
+            <FaBullseye className="h-3 w-3" />
+            <span>Campaign orchestration</span>
+          </div>
+          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-zinc-900">
             Campaigns
           </h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-sm text-zinc-500 mt-1">
             Create and manage bulk calling campaigns
           </p>
         </div>
         <div className="flex items-center space-x-3 mt-6 sm:mt-4">
           <button
             onClick={() => setShowScheduleModal(true)}
-            className="flex items-center space-x-2 px-6 py-3 bg-purple-500 hover:bg-purple-600 text-white rounded-lg font-medium shadow-md hover:shadow-lg transition-all"
+            className="flex items-center space-x-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full text-xs font-medium shadow-sm hover:shadow-md transition-all"
           >
             <FaCalendar />
             <span>Schedule Campaign</span>
           </button>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center space-x-2 px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium shadow-md hover:shadow-lg transition-all"
+            className="flex items-center space-x-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full text-xs font-medium shadow-sm hover:shadow-md transition-all"
           >
             <FaPlus />
             <span>Create Campaign</span>
@@ -575,24 +589,24 @@ const Campaigns = () => {
       </div>
 
       {/* Search and Filter Bar */}
-      <div className="bg-white dark:bg-gray-800 rounded-none sm:rounded-xl shadow-sm border-0 sm:border border-gray-200 dark:border-gray-700 p-4 mx-4 sm:mx-0">
+      <div className="glass-panel p-4">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1 relative">
-            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400" />
             <input
               type="text"
               placeholder="Search campaigns..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-zinc-200 rounded-lg bg-white text-zinc-900 focus:ring-2 focus:ring-emerald-500/60 focus:border-emerald-400 text-xs"
             />
           </div>
           <div className="flex items-center space-x-2">
-            <FaFilter className="text-gray-400" />
+            <FaFilter className="text-zinc-400" />
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="px-4 py-2 border border-zinc-200 rounded-lg bg-white text-zinc-900 focus:ring-2 focus:ring-emerald-500/60 focus:border-emerald-400 text-xs"
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
@@ -607,41 +621,41 @@ const Campaigns = () => {
 
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-          <p className="text-red-800 dark:text-red-200">{error}</p>
+        <div className="glass-card border-l-4 border-red-500/70 bg-red-50/80 p-4">
+          <p className="text-red-800 text-sm">{error}</p>
         </div>
       )}
 
       {/* Campaigns Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-none sm:rounded-xl shadow-lg border-0 sm:border-2 border-indigo-200 dark:border-indigo-800 overflow-hidden">
+      <div className="glass-panel overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="text-white uppercase text-xs tracking-wider shadow-lg" style={{ background: 'linear-gradient(to right, #1e4fd9, #2c60eb)' }}>
+            <thead className="bg-zinc-50 border-b border-zinc-200">
               <tr>
-                <th className="px-3 sm:px-6 py-4 text-left font-bold rounded-tl-xl">
+                <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-[0.16em]">
                   Campaign Name
                 </th>
-                <th className="px-3 sm:px-6 py-4 text-left font-bold">
+                <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-[0.16em]">
                   Progress
                 </th>
-                <th className="px-3 sm:px-6 py-4 text-left font-bold">
+                <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-[0.16em]">
                   Total Calls
                 </th>
-                <th className="px-3 sm:px-6 py-4 text-left font-bold">
+                <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-[0.16em]">
                   Concurrent
                 </th>
-                <th className="px-3 sm:px-6 py-4 text-left font-bold">
+                <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-[0.16em]">
                   Status
                 </th>
-                <th className="px-3 sm:px-6 py-4 text-left font-bold rounded-tr-xl">
+                <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-[0.16em]">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className="divide-y divide-zinc-100">
               {filteredCampaigns.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-3 sm:px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan="6" className="px-4 py-8 text-center text-zinc-500 text-sm">
                     No campaigns found. Create your first campaign!
                   </td>
                 </tr>
@@ -659,68 +673,70 @@ const Campaigns = () => {
                   return (
                     <tr
                       key={campaign._id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      className="hover:bg-zinc-50/60 transition-colors"
                     >
-                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="text-sm font-medium text-zinc-900">
                           {campaign.name}
                         </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                        <div className="text-xs text-zinc-500">
                           {new Date(campaign.createdAt).toLocaleDateString()}
                         </div>
                       </td>
-                      <td className="px-3 sm:px-6 py-4">
+                      <td className="px-4 py-3">
                         <div className="flex items-center">
-                          <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2 mr-3">
+                          <div className="flex-1 bg-zinc-200 rounded-full h-2 mr-3">
                             <div
-                              className="bg-primary-500 h-2 rounded-full transition-all"
+                              className="bg-emerald-500 h-2 rounded-full transition-all"
                               style={{ width: `${progress}%` }}
                             />
                           </div>
-                          <span className="text-sm text-gray-600 dark:text-gray-300 min-w-[60px]">
+                          <span className="text-sm text-zinc-700 min-w-[60px]">
                             {progress}%
                           </span>
                         </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        <div className="text-xs text-zinc-500 mt-1">
                           {processedCallsCapped} / {campaign.totalContacts} processed
                           {campaign.completedCalls > 0 && (
-                            <span className="text-green-600 dark:text-green-400 ml-2">
+                            <span className="text-emerald-600 ml-2">
                               ({campaign.completedCalls} completed)
                             </span>
                           )}
                           {campaign.failedCalls > 0 && (
-                            <span className="text-red-600 dark:text-red-400 ml-2">
+                            <span className="text-red-600 ml-2">
                               ({campaign.failedCalls} failed)
                             </span>
                           )}
                         </div>
                       </td>
-                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900 dark:text-white font-medium">
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="text-sm text-zinc-900 font-medium">
                           {campaign.totalContacts}
                         </div>
                         {remaining > 0 && (
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                          <div className="text-xs text-zinc-500">
                             {remaining} in queue
                           </div>
                         )}
                       </td>
-                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-zinc-600">
                         {campaign.settings?.concurrentCallsLimit || 2} at a time
                       </td>
-                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         {campaign.status === 'active' ? (
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => handlePauseCampaign(campaign._id)}
-                              className="px-3 py-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1"
+                              className="inline-flex items-center gap-1 px-3 py-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded-full text-xs font-medium transition-colors shrink-0 max-w-fit"
+                              style={{ borderRadius: '9999px' }}
                             >
                               <FaPause size={12} />
                               <span>Pause</span>
                             </button>
                             <button
                               onClick={() => handleCancelCampaign(campaign._id)}
-                              className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1"
+                              className="inline-flex items-center justify-center w-7 h-7 bg-red-500 hover:bg-red-600 text-white rounded-full text-xs font-medium transition-colors shrink-0"
+                              style={{ borderRadius: '9999px' }}
                             >
                               <FaTimes size={12} />
                             </button>
@@ -729,13 +745,14 @@ const Campaigns = () => {
                           <div className="flex flex-col gap-1">
                             <button
                               onClick={() => handleResumeCampaign(campaign._id)}
-                              className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1"
+                              className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full text-xs font-medium transition-colors shrink-0 max-w-fit"
+                              style={{ borderRadius: '9999px' }}
                             >
                               <FaPlay size={12} />
                               <span>Resume</span>
                             </button>
                             {campaign.metadata?.pauseReason === 'insufficient_credits' && (
-                              <div className="text-xs text-red-600 dark:text-red-400 font-medium mt-1">
+                              <div className="text-xs text-red-600 font-medium mt-1">
                                 ⚠ No credits
                               </div>
                             )}
@@ -744,25 +761,32 @@ const Campaigns = () => {
                           getStatusBadge(campaign.status)
                         )}
                       </td>
-                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm">
                         <div className="flex items-center space-x-2">
                           <button
                             onClick={() => {
+                              console.log('📋 Campaign clicked:', campaign);
+                              console.log('📋 totalContacts:', campaign.totalContacts);
+                              console.log('📋 activeCalls:', campaign.activeCalls);
+                              console.log('📋 completedCalls:', campaign.completedCalls);
+                              console.log('📋 failedCalls:', campaign.failedCalls);
                               setSelectedCampaign(campaign);
                               setShowViewModal(true);
                             }}
-                            className="px-3 py-1 bg-primary-500 hover:bg-primary-600 text-white rounded-lg text-xs font-medium transition-colors"
+                            className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full text-xs font-medium transition-colors shrink-0 max-w-fit"
+                            style={{ borderRadius: '9999px' }}
                           >
-                            <FaEye className="inline mr-1" />
-                            View
+                            <FaEye size={12} />
+                            <span>View</span>
                           </button>
                           {campaign.status === 'pending' && (
                             <button
                               onClick={() => handleStartCampaign(campaign._id)}
-                              className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs font-medium transition-colors"
+                              className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full text-xs font-medium transition-colors shrink-0 max-w-fit"
+                              style={{ borderRadius: '9999px' }}
                             >
-                              <FaPlay className="inline mr-1" />
-                              Start
+                              <FaPlay size={12} />
+                              <span>Start</span>
                             </button>
                           )}
                         </div>
@@ -776,39 +800,39 @@ const Campaigns = () => {
         </div>
         {/* Pagination */}
         {pagination.pages > 1 && (
-          <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-gray-800 dark:to-gray-900 border-t-2 border-indigo-300 dark:border-indigo-700 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
-            <div className="text-xs sm:text-sm font-semibold text-indigo-700 dark:text-indigo-300 text-center sm:text-left">
-              Showing <span className="text-blue-600 dark:text-blue-400">{((pagination.page - 1) * pagination.limit) + 1}</span> to <span className="text-blue-600 dark:text-blue-400">{Math.min(pagination.page * pagination.limit, pagination.total)}</span> of <span className="text-purple-600 dark:text-purple-400">{pagination.total}</span> campaigns
+          <div className="px-4 py-3 border-t border-zinc-200 bg-zinc-50/60 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
+            <div className="text-xs sm:text-sm font-medium text-zinc-600 text-center sm:text-left">
+              Showing <span className="text-emerald-600">{((pagination.page - 1) * pagination.limit) + 1}</span> to <span className="text-emerald-600">{Math.min(pagination.page * pagination.limit, pagination.total)}</span> of <span className="text-zinc-900">{pagination.total}</span> campaigns
             </div>
             <div className="flex items-center space-x-1 sm:space-x-2 flex-wrap justify-center">
               <button
                 onClick={() => setPagination({ ...pagination, page: 1 })}
                 disabled={pagination.page === 1}
-                className="px-2 sm:px-3 py-1 text-xs sm:text-sm border-2 border-indigo-400 dark:border-indigo-600 rounded-lg bg-white dark:bg-gray-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold"
+                className="px-2 sm:px-3 py-1 text-xs sm:text-sm border border-zinc-300 rounded-lg bg-white text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
               >
                 ««
               </button>
               <button
                 onClick={() => setPagination({ ...pagination, page: Math.max(1, pagination.page - 1) })}
                 disabled={pagination.page === 1}
-                className="px-2 sm:px-3 py-1 text-xs sm:text-sm border-2 border-indigo-400 dark:border-indigo-600 rounded-lg bg-white dark:bg-gray-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold"
+                className="px-2 sm:px-3 py-1 text-xs sm:text-sm border border-zinc-300 rounded-lg bg-white text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
               >
                 «
               </button>
-              <span className="px-2 sm:px-4 py-1 text-xs sm:text-sm font-bold text-indigo-700 dark:text-indigo-300 whitespace-nowrap bg-white dark:bg-gray-700 rounded-lg border-2 border-indigo-300 dark:border-indigo-600">
-                Page <span className="text-blue-600 dark:text-blue-400">{pagination.page}</span> of <span className="text-purple-600 dark:text-purple-400">{pagination.pages}</span>
+              <span className="px-2 sm:px-4 py-1 text-xs sm:text-sm font-medium text-zinc-700 whitespace-nowrap bg-white rounded-lg border border-zinc-300">
+                Page <span className="text-emerald-600">{pagination.page}</span> of <span className="text-zinc-900">{pagination.pages}</span>
               </span>
               <button
                 onClick={() => setPagination({ ...pagination, page: Math.min(pagination.pages, pagination.page + 1) })}
                 disabled={pagination.page >= pagination.pages}
-                className="px-2 sm:px-3 py-1 text-xs sm:text-sm border-2 border-indigo-400 dark:border-indigo-600 rounded-lg bg-white dark:bg-gray-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold"
+                className="px-2 sm:px-3 py-1 text-xs sm:text-sm border border-zinc-300 rounded-lg bg-white text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
               >
                 »
               </button>
               <button
                 onClick={() => setPagination({ ...pagination, page: pagination.pages })}
                 disabled={pagination.page >= pagination.pages}
-                className="px-2 sm:px-3 py-1 text-xs sm:text-sm border-2 border-indigo-400 dark:border-indigo-600 rounded-lg bg-white dark:bg-gray-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold"
+                className="px-2 sm:px-3 py-1 text-xs sm:text-sm border border-zinc-300 rounded-lg bg-white text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
               >
                 »»
               </button>
@@ -819,11 +843,11 @@ const Campaigns = () => {
 
       {/* View Campaign Details Modal */}
       {showViewModal && selectedCampaign && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="glass-card rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-zinc-200">
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                <h2 className="text-xl font-semibold text-zinc-900">
                   Campaign Details
                 </h2>
                 <button
@@ -831,7 +855,7 @@ const Campaigns = () => {
                     setShowViewModal(false);
                     setSelectedCampaign(null);
                   }}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                  className="text-zinc-400 hover:text-zinc-600"
                 >
                   ✕
                 </button>
@@ -842,26 +866,26 @@ const Campaigns = () => {
                 {/* Left Column */}
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-xs font-medium text-zinc-500 mb-1">
                       Campaign ID
                     </label>
-                    <p className="text-sm text-gray-900 dark:text-white font-mono break-all">
+                    <p className="text-sm text-zinc-900 font-mono break-all">
                       {selectedCampaign._id}
                     </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-xs font-medium text-zinc-500 mb-1">
                       Campaign Name
                     </label>
-                    <p className="text-sm text-gray-900 dark:text-white">
+                    <p className="text-sm text-zinc-900">
                       {selectedCampaign.name}
                     </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-xs font-medium text-zinc-500 mb-1">
                       Created At
                     </label>
-                    <p className="text-sm text-gray-900 dark:text-white">
+                    <p className="text-sm text-zinc-900">
                       {selectedCampaign.createdAt ? new Date(selectedCampaign.createdAt).toLocaleString('en-US', {
                         year: 'numeric',
                         month: 'long',
@@ -873,10 +897,10 @@ const Campaigns = () => {
                     </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-xs font-medium text-zinc-500 mb-1">
                       Start Time
                     </label>
-                    <p className="text-sm text-gray-900 dark:text-white">
+                    <p className="text-sm text-zinc-900">
                       {selectedCampaign.startedAt ? new Date(selectedCampaign.startedAt).toLocaleString('en-US', {
                         year: 'numeric',
                         month: 'long',
@@ -888,10 +912,10 @@ const Campaigns = () => {
                     </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-xs font-medium text-zinc-500 mb-1">
                       End Time
                     </label>
-                    <p className="text-sm text-gray-900 dark:text-white">
+                    <p className="text-sm text-zinc-900">
                       {selectedCampaign.completedAt ? new Date(selectedCampaign.completedAt).toLocaleString('en-US', {
                         year: 'numeric',
                         month: 'long',
@@ -907,7 +931,7 @@ const Campaigns = () => {
                 {/* Right Column */}
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-xs font-medium text-zinc-500 mb-1">
                       Status
                     </label>
                     <div className="mt-1">
@@ -915,34 +939,26 @@ const Campaigns = () => {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-xs font-medium text-zinc-500 mb-1">
                       Total Numbers
                     </label>
-                    <p className="text-sm text-gray-900 dark:text-white">
+                    <p className="text-sm text-zinc-900">
                       {selectedCampaign.totalContacts || 0}
                     </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Active Calls
-                    </label>
-                    <p className="text-sm text-gray-900 dark:text-white">
-                      {selectedCampaign.activeCalls || 0}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-xs font-medium text-zinc-500 mb-1">
                       Completed Calls
                     </label>
-                    <p className="text-sm text-gray-900 dark:text-white">
+                    <p className="text-sm text-zinc-900">
                       {selectedCampaign.completedCalls || 0}
                     </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-xs font-medium text-zinc-500 mb-1">
                       Failed Calls
                     </label>
-                    <p className="text-sm text-gray-900 dark:text-white">
+                    <p className="text-sm text-zinc-900">
                       {selectedCampaign.failedCalls || 0}
                     </p>
                   </div>
@@ -952,7 +968,7 @@ const Campaigns = () => {
                 <button
                   onClick={handleDownloadCallDetails}
                   disabled={downloadingCallDetails}
-                  className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full text-xs font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {downloadingCallDetails ? (
                     <>
@@ -968,13 +984,13 @@ const Campaigns = () => {
                 </button>
               </div>
             </div>
-            <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+            <div className="p-6 border-t border-zinc-200 flex justify-end">
               <button
                 onClick={() => {
                   setShowViewModal(false);
                   setSelectedCampaign(null);
                 }}
-                className="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-colors"
+                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full text-xs font-medium transition-colors"
               >
                 Close
               </button>
@@ -985,11 +1001,11 @@ const Campaigns = () => {
 
       {/* Create Campaign Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="glass-card rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-zinc-200">
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                <h2 className="text-xl font-semibold text-zinc-900">
                   Create Bulk Campaign
                 </h2>
                 <button
@@ -997,7 +1013,7 @@ const Campaigns = () => {
                     setShowCreateModal(false);
                     setConcurrentCallsError('');
                   }}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                  className="text-zinc-400 hover:text-zinc-600"
                 >
                   ✕
                 </button>
@@ -1005,7 +1021,7 @@ const Campaigns = () => {
             </div>
             <form onSubmit={handleCreateCampaign} className="p-6 space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-xs font-medium text-zinc-600 mb-2">
                   Campaign Name *
                 </label>
                 <input
@@ -1014,12 +1030,12 @@ const Campaigns = () => {
                   placeholder="Enter your campaign name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-zinc-200 rounded-lg bg-white text-zinc-900 focus:ring-2 focus:ring-emerald-500/60 focus:border-emerald-400 text-xs"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-xs font-medium text-zinc-600 mb-2">
                   Phone Numbers * (One per line or comma-separated)
                 </label>
                 <textarea
@@ -1028,7 +1044,7 @@ const Campaigns = () => {
                   placeholder="9821211755&#10;9876543210&#10;9123456789&#10;9988776655"
                   value={formData.phoneNumbers}
                   onChange={(e) => setFormData({ ...formData, phoneNumbers: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono text-sm"
+                  className="w-full px-4 py-2 border border-zinc-200 rounded-lg bg-white text-zinc-900 focus:ring-2 focus:ring-emerald-500/60 focus:border-emerald-400 font-mono text-xs"
                 />
                 <div className="flex items-center gap-4 mt-3">
                   <div className="flex gap-2">
@@ -1042,7 +1058,7 @@ const Campaigns = () => {
                     <button
                       type="button"
                       onClick={() => csvFileInputRef.current?.click()}
-                      className="inline-flex items-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition-colors"
+                      className="inline-flex items-center space-x-2 px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-lg text-xs font-medium transition-colors"
                     >
                       <FaUpload size={14} />
                       <span>Import CSV</span>
@@ -1050,7 +1066,7 @@ const Campaigns = () => {
                     <button
                       type="button"
                       onClick={() => setShowCsvExample(true)}
-                      className="inline-flex items-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition-colors"
+                      className="inline-flex items-center space-x-2 px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-lg text-xs font-medium transition-colors"
                     >
                       <FaFileAlt size={14} />
                       <span>CSV Example</span>
@@ -1061,9 +1077,9 @@ const Campaigns = () => {
                       type="checkbox"
                       checked={formData.includeGreeting}
                       onChange={(e) => setFormData({ ...formData, includeGreeting: e.target.checked })}
-                      className="w-4 h-4 text-primary-500 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 dark:focus:ring-primary-500 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
+                      className="w-4 h-4 text-emerald-500 bg-white border-zinc-300 rounded focus:ring-emerald-500 focus:ring-2 cursor-pointer"
                     />
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label className="text-xs font-medium text-zinc-700">
                       Include Greeting
                     </label>
                   </div>
@@ -1071,7 +1087,7 @@ const Campaigns = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-xs font-medium text-zinc-600 mb-2">
                   Active Calls (At a time)
                 </label>
                 <input
@@ -1089,22 +1105,22 @@ const Campaigns = () => {
                       setFormData({ ...formData, concurrentCalls: value });
                     }
                   }}
-                  className={`w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                    concurrentCallsError ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
+                  className={`w-full px-4 py-2 border rounded-lg bg-white text-zinc-900 focus:ring-2 focus:ring-emerald-500/60 focus:border-emerald-400 text-xs ${
+                    concurrentCallsError ? 'border-red-300' : 'border-zinc-200'
                   }`}
                 />
                 {concurrentCallsError && (
-                  <p className="text-xs text-red-500 dark:text-red-400 mt-2">
+                  <p className="text-xs text-red-500 mt-2">
                     {concurrentCallsError}
                   </p>
                 )}
               </div>
 
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <p className="text-sm text-blue-800 dark:text-blue-200">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-xs text-blue-800 font-medium">
                   <strong>How it works:</strong>
                 </p>
-                <ul className="text-xs text-blue-700 dark:text-blue-300 mt-2 space-y-1 list-disc list-inside">
+                <ul className="text-xs text-blue-700 mt-2 space-y-1 list-disc list-inside">
                   <li>Campaign will automatically start after creation</li>
                   <li>{formData.concurrentCalls || 2} calls will be made at a time</li>
                   <li>Remaining numbers will wait in queue</li>
@@ -1113,21 +1129,21 @@ const Campaigns = () => {
                 </ul>
               </div>
 
-              <div className="flex justify-end space-x-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex justify-end space-x-4 pt-4 border-t border-zinc-200">
                 <button
                   type="button"
                   onClick={() => {
                     setShowCreateModal(false);
                     setConcurrentCallsError('');
                   }}
-                  className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  className="px-6 py-2 border border-zinc-300 rounded-full text-zinc-700 hover:bg-zinc-50 transition-colors text-xs font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-6 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                  className="px-6 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full text-xs font-medium transition-colors disabled:opacity-50"
                 >
                   {loading ? 'Creating...' : 'Create & Start Campaign'}
                 </button>
@@ -1139,11 +1155,11 @@ const Campaigns = () => {
 
       {/* Schedule Campaign Modal */}
       {showScheduleModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="glass-card rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-zinc-200">
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                <h2 className="text-xl font-semibold text-zinc-900">
                   Schedule Campaign
                 </h2>
                 <button
@@ -1159,7 +1175,7 @@ const Campaigns = () => {
                       includeGreeting: false
                     });
                   }}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                  className="text-zinc-400 hover:text-zinc-600"
                 >
                   ✕
                 </button>
@@ -1167,7 +1183,7 @@ const Campaigns = () => {
             </div>
             <form onSubmit={handleScheduleCampaign} className="p-6 space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-xs font-medium text-zinc-600 mb-2">
                   Campaign Name *
                 </label>
                 <input
@@ -1176,12 +1192,12 @@ const Campaigns = () => {
                   value={scheduleData.name}
                   onChange={(e) => setScheduleData({ ...scheduleData, name: e.target.value })}
                   placeholder="Enter campaign name"
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-zinc-200 rounded-lg bg-white text-zinc-900 focus:ring-2 focus:ring-emerald-500/60 focus:border-emerald-400 text-xs"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-xs font-medium text-zinc-600 mb-2">
                   Phone Numbers (one per line or comma-separated)
                 </label>
                 <textarea
@@ -1190,9 +1206,9 @@ const Campaigns = () => {
                   onChange={(e) => setScheduleData({ ...scheduleData, phoneNumbers: e.target.value })}
                   placeholder="+1234567890&#10;+1234567891&#10;+1234567892"
                   rows={6}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono text-sm"
+                  className="w-full px-4 py-2 border border-zinc-200 rounded-lg bg-white text-zinc-900 focus:ring-2 focus:ring-emerald-500/60 focus:border-emerald-400 font-mono text-xs"
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                <p className="text-xs text-zinc-500 mt-2">
                   Enter phone numbers, one per line or separated by commas
                 </p>
                 <div className="flex items-center gap-4 mt-3">
@@ -1207,7 +1223,7 @@ const Campaigns = () => {
                     <button
                       type="button"
                       onClick={() => scheduleCsvFileInputRef.current?.click()}
-                      className="inline-flex items-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition-colors"
+                      className="inline-flex items-center space-x-2 px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-lg text-xs font-medium transition-colors"
                     >
                       <FaUpload size={14} />
                       <span>Import CSV</span>
@@ -1215,7 +1231,7 @@ const Campaigns = () => {
                     <button
                       type="button"
                       onClick={() => setShowCsvExample(true)}
-                      className="inline-flex items-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition-colors"
+                      className="inline-flex items-center space-x-2 px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-lg text-xs font-medium transition-colors"
                     >
                       <FaFileAlt size={14} />
                       <span>CSV Example</span>
@@ -1226,9 +1242,9 @@ const Campaigns = () => {
                       type="checkbox"
                       checked={scheduleData.includeGreeting}
                       onChange={(e) => setScheduleData({ ...scheduleData, includeGreeting: e.target.checked })}
-                      className="w-4 h-4 text-primary-500 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 dark:focus:ring-primary-500 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
+                      className="w-4 h-4 text-emerald-500 bg-white border-zinc-300 rounded focus:ring-emerald-500 focus:ring-2 cursor-pointer"
                     />
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label className="text-xs font-medium text-zinc-700">
                       Include Greeting
                     </label>
                   </div>
@@ -1236,7 +1252,7 @@ const Campaigns = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-xs font-medium text-zinc-600 mb-2">
                   Active Calls (At a time)
                 </label>
                 <input
@@ -1254,12 +1270,12 @@ const Campaigns = () => {
                       setScheduleData({ ...scheduleData, concurrentCalls: value });
                     }
                   }}
-                  className={`w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                    scheduleConcurrentCallsError ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
+                  className={`w-full px-4 py-2 border rounded-lg bg-white text-zinc-900 focus:ring-2 focus:ring-emerald-500/60 focus:border-emerald-400 text-xs ${
+                    scheduleConcurrentCallsError ? 'border-red-300' : 'border-zinc-200'
                   }`}
                 />
                 {scheduleConcurrentCallsError && (
-                  <p className="text-xs text-red-500 dark:text-red-400 mt-2">
+                  <p className="text-xs text-red-500 mt-2">
                     {scheduleConcurrentCallsError}
                   </p>
                 )}
@@ -1267,7 +1283,7 @@ const Campaigns = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-xs font-medium text-zinc-600 mb-2">
                     Schedule Date
                   </label>
                   <input
@@ -1276,11 +1292,11 @@ const Campaigns = () => {
                     value={scheduleData.scheduleDate}
                     onChange={(e) => setScheduleData({ ...scheduleData, scheduleDate: e.target.value })}
                     min={new Date().toISOString().split('T')[0]}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-zinc-200 rounded-lg bg-white text-zinc-900 focus:ring-2 focus:ring-emerald-500/60 focus:border-emerald-400 text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-xs font-medium text-zinc-600 mb-2">
                     Schedule Time
                   </label>
                   <input
@@ -1288,21 +1304,21 @@ const Campaigns = () => {
                     required
                     value={scheduleData.scheduleTime}
                     onChange={(e) => setScheduleData({ ...scheduleData, scheduleTime: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-zinc-200 rounded-lg bg-white text-zinc-900 focus:ring-2 focus:ring-emerald-500/60 focus:border-emerald-400 text-xs"
                   />
                 </div>
               </div>
 
               {scheduleData.scheduleDate && scheduleData.scheduleTime && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-xs text-blue-800">
                     <strong>Scheduled for:</strong>{' '}
                     {new Date(`${scheduleData.scheduleDate}T${scheduleData.scheduleTime}`).toLocaleString()}
                   </p>
                 </div>
               )}
 
-              <div className="flex justify-end space-x-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex justify-end space-x-4 pt-4 border-t border-zinc-200">
                 <button
                   type="button"
                   onClick={() => {
@@ -1317,14 +1333,14 @@ const Campaigns = () => {
           includeGreeting: false
         });
                   }}
-                  className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  className="px-6 py-2 border border-zinc-300 rounded-full text-zinc-700 hover:bg-zinc-50 transition-colors text-xs font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-6 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                  className="px-6 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full text-xs font-medium transition-colors disabled:opacity-50"
                 >
                   {loading ? 'Scheduling...' : 'Schedule Campaign'}
                 </button>
@@ -1336,65 +1352,65 @@ const Campaigns = () => {
 
       {/* CSV Example Modal */}
       {showCsvExample && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="glass-card rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-zinc-200">
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                <h2 className="text-xl font-semibold text-zinc-900">
                   CSV Example Format
                 </h2>
                 <button
                   onClick={() => setShowCsvExample(false)}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                  className="text-zinc-400 hover:text-zinc-600"
                 >
                   ✕
                 </button>
               </div>
             </div>
             <div className="p-6 space-y-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-xs text-zinc-600">
                 Your CSV file should have number and name columns. You can include a header row (optional).
               </p>
               
-              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+              <div className="bg-zinc-50 rounded-lg p-4 border border-zinc-200">
+                <h3 className="text-xs font-semibold text-zinc-700 mb-3">
                   Example CSV Format:
                 </h3>
                 <div className="overflow-x-auto">
-                  <table className="w-full border-collapse border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800">
+                  <table className="w-full border-collapse border border-zinc-300 bg-white">
                     <thead>
-                      <tr className="bg-gray-100 dark:bg-gray-700">
-                        <th className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">number</th>
-                        <th className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">name</th>
+                      <tr className="bg-zinc-100">
+                        <th className="border border-zinc-300 px-4 py-2 text-left text-xs font-semibold text-zinc-700">number</th>
+                        <th className="border border-zinc-300 px-4 py-2 text-left text-xs font-semibold text-zinc-700">name</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <td className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-xs font-mono text-gray-800 dark:text-gray-200">9821211755</td>
-                        <td className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-xs text-gray-800 dark:text-gray-200">John Doe</td>
+                      <tr className="hover:bg-zinc-50">
+                        <td className="border border-zinc-300 px-4 py-2 text-xs font-mono text-zinc-800">9821211755</td>
+                        <td className="border border-zinc-300 px-4 py-2 text-xs text-zinc-800">John Doe</td>
                       </tr>
-                      <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <td className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-xs font-mono text-gray-800 dark:text-gray-200">9876543210</td>
-                        <td className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-xs text-gray-800 dark:text-gray-200">Jane Smith</td>
+                      <tr className="hover:bg-zinc-50">
+                        <td className="border border-zinc-300 px-4 py-2 text-xs font-mono text-zinc-800">9876543210</td>
+                        <td className="border border-zinc-300 px-4 py-2 text-xs text-zinc-800">Jane Smith</td>
                       </tr>
-                      <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <td className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-xs font-mono text-gray-800 dark:text-gray-200">9123456789</td>
-                        <td className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-xs text-gray-800 dark:text-gray-200">Bob Johnson</td>
+                      <tr className="hover:bg-zinc-50">
+                        <td className="border border-zinc-300 px-4 py-2 text-xs font-mono text-zinc-800">9123456789</td>
+                        <td className="border border-zinc-300 px-4 py-2 text-xs text-zinc-800">Bob Johnson</td>
                       </tr>
-                      <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <td className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-xs font-mono text-gray-800 dark:text-gray-200">9988776655</td>
-                        <td className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-xs text-gray-800 dark:text-gray-200">Alice Williams</td>
+                      <tr className="hover:bg-zinc-50">
+                        <td className="border border-zinc-300 px-4 py-2 text-xs font-mono text-zinc-800">9988776655</td>
+                        <td className="border border-zinc-300 px-4 py-2 text-xs text-zinc-800">Alice Williams</td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
               </div>
 
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-2">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 className="text-xs font-semibold text-blue-800 mb-2">
                   Notes:
                 </h3>
-                <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1 list-disc list-inside">
+                <ul className="text-xs text-blue-700 space-y-1 list-disc list-inside">
                   <li>CSV should have two columns: number and name</li>
                   <li>First column should contain phone numbers</li>
                   <li>Second column should contain names (optional, can be empty)</li>
@@ -1405,11 +1421,11 @@ const Campaigns = () => {
                 </ul>
               </div>
 
-              <div className="flex justify-end space-x-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex justify-end space-x-4 pt-4 border-t border-zinc-200">
                 <button
                   type="button"
                   onClick={() => setShowCsvExample(false)}
-                  className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  className="px-6 py-2 border border-zinc-300 rounded-full text-zinc-700 hover:bg-zinc-50 transition-colors text-xs font-medium"
                 >
                   Close
                 </button>
@@ -1419,7 +1435,7 @@ const Campaigns = () => {
                     downloadCsvExample();
                     setShowCsvExample(false);
                   }}
-                  className="px-6 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-colors"
+                  className="px-6 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full text-xs font-medium transition-colors"
                 >
                   Download Example CSV
                 </button>
